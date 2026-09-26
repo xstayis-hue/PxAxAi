@@ -7,183 +7,217 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#07060f;
-  --panel:rgba(18,16,32,.75);
-  --line:rgba(140,120,255,.18);
-  --text:#d4d0e8;
-  --mute:#6a6580;
-  --a:#9b7bff;
-  --b:#5ce1e6;
-  --glow:rgba(155,123,255,.25);
+  --bg:#07060f;--panel:rgba(18,16,32,.78);--line:rgba(140,120,255,.18);
+  --text:#d4d0e8;--mute:#6a6580;--a:#9b7bff;--b:#5ce1e6;--glow:rgba(155,123,255,.28);
 }
 html,body{height:100%}
 body{
-  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
-  background:var(--bg);color:var(--text);
-  display:flex;flex-direction:column;
-  max-width:480px;margin:0 auto;
-  min-height:100vh;min-height:100dvh;
-  -webkit-text-size-adjust:100%;
-  position:relative;overflow:hidden;
+  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
+  max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;
+  -webkit-text-size-adjust:100%;position:relative;overflow:hidden;
 }
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
-    radial-gradient(ellipse 90% 50% at 50% -20%,rgba(120,80,255,.22),transparent 55%),
-    radial-gradient(ellipse 60% 40% at 80% 100%,rgba(60,200,220,.1),transparent 50%),
-    radial-gradient(ellipse 40% 30% at 10% 60%,rgba(155,123,255,.08),transparent 45%);
+    radial-gradient(ellipse 90% 50% at 50% -15%,rgba(120,80,255,.22),transparent 55%),
+    radial-gradient(ellipse 50% 35% at 85% 90%,rgba(60,200,220,.1),transparent 50%);
 }
-.orb{
-  position:fixed;width:180px;height:180px;border-radius:50%;
-  top:12%;left:50%;transform:translateX(-50%);
-  background:radial-gradient(circle at 40% 35%,rgba(200,180,255,.35),rgba(90,60,180,.15) 45%,transparent 70%);
-  filter:blur(8px);z-index:0;pointer-events:none;
-  animation:orb-breathe 6s ease-in-out infinite;
-}
-@keyframes orb-breathe{0%,100%{opacity:.7;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.06)}}
-.wrap{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;height:100dvh;padding:12px 12px 0;padding-bottom:0}
+.wrap{position:relative;z-index:1;height:100vh;height:100dvh;display:flex;flex-direction:column}
 
-.top{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:4px 4px 12px;flex-shrink:0;
+/* —— HOME —— */
+#home{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px 20px calc(24px + env(safe-area-inset-bottom));text-align:center;
 }
-.brand{display:flex;align-items:center;gap:10px}
-.avatar{
-  width:40px;height:40px;border-radius:50%;
-  background:linear-gradient(145deg,rgba(155,123,255,.4),rgba(92,225,230,.25));
-  border:1px solid rgba(155,123,255,.35);
+#home.hidden{display:none}
+.orb-wrap{position:relative;width:140px;height:140px;margin-bottom:28px}
+.orb-glow{
+  position:absolute;inset:-20px;border-radius:50%;
+  background:radial-gradient(circle,rgba(155,123,255,.35),transparent 70%);
+  filter:blur(12px);animation:pulse 5s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+.orb-core{
+  position:relative;width:140px;height:140px;border-radius:50%;
+  background:linear-gradient(145deg,rgba(155,123,255,.45),rgba(40,30,80,.8) 50%,rgba(92,225,230,.2));
+  border:1px solid rgba(200,180,255,.35);
+  box-shadow:0 0 40px rgba(155,123,255,.25),inset 0 0 30px rgba(92,225,230,.08);
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 20px var(--glow);
-  position:relative;
 }
-.avatar::after{
-  content:'';position:absolute;inset:-3px;border-radius:50%;
-  border:1px solid rgba(92,225,230,.25);animation:ring 3s linear infinite;
+.orb-core svg{width:56px;height:56px;opacity:.9}
+.orb-ring{
+  position:absolute;inset:-8px;border-radius:50%;
+  border:1px solid rgba(92,225,230,.2);animation:spin 12s linear infinite;
 }
-@keyframes ring{to{transform:rotate(360deg);border-color:rgba(155,123,255,.3)}}
-.avatar svg{width:22px;height:22px}
-.brand h1{font-size:16px;font-weight:650;letter-spacing:.5px;color:#efeaff}
-.brand p{font-size:10px;color:var(--mute);margin-top:1px}
-.status-chip{
-  font-size:10px;padding:5px 10px;border-radius:999px;
-  border:1px solid var(--line);color:var(--b);background:rgba(92,225,230,.06);
-  display:flex;align-items:center;gap:6px;
+@keyframes spin{to{transform:rotate(360deg)}}
+.home-title{font-size:28px;font-weight:700;letter-spacing:2px;color:#efeaff;margin-bottom:6px}
+.home-sub{font-size:13px;color:var(--mute);margin-bottom:8px;letter-spacing:1px}
+.home-status{
+  display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--b);
+  padding:6px 12px;border-radius:20px;border:1px solid rgba(92,225,230,.2);
+  background:rgba(92,225,230,.06);margin-bottom:28px;
 }
-.status-chip .d{width:6px;height:6px;border-radius:50%;background:var(--b);box-shadow:0 0 8px var(--b);animation:blink 1.8s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.home-status .d{width:6px;height:6px;border-radius:50%;background:var(--b);box-shadow:0 0 8px var(--b);animation:blink 1.8s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.home-actions{width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px}
+.btn-main{
+  width:100%;padding:16px;border:none;border-radius:14px;font-family:inherit;
+  font-size:15px;font-weight:650;cursor:pointer;color:#fff;
+  background:linear-gradient(135deg,var(--a),#6b8cff);box-shadow:0 6px 24px var(--glow);
+}
+.btn-main:active{transform:scale(.98);opacity:.92}
+.btn-ghost{
+  width:100%;padding:14px;border-radius:14px;font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--text);
+}
+.home-hint{margin-top:20px;font-size:11px;color:var(--mute);line-height:1.4;max-width:280px}
+.home-foot{position:absolute;bottom:12px;left:0;right:0;font-size:9px;color:#3a3550;letter-spacing:.5px}
 
+/* —— ABOUT sheet —— */
+#about{
+  display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.65);
+  align-items:flex-end;justify-content:center;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));
+}
+#about.open{display:flex}
+.about-box{
+  width:100%;max-width:400px;background:#12101c;border:1px solid var(--line);
+  border-radius:18px;padding:20px 18px;text-align:left;
+}
+.about-box h2{font-size:15px;color:#efeaff;margin-bottom:10px}
+.about-box p{font-size:13px;color:var(--mute);line-height:1.5;margin-bottom:10px}
+.about-box button{
+  width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(155,123,255,.12);color:var(--text);font-family:inherit;font-size:13px;cursor:pointer;
+}
+
+/* —— CHAT —— */
+#chat-view{
+  display:none;flex-direction:column;height:100%;padding:0 12px;
+  padding-top:max(8px,env(safe-area-inset-top));
+}
+#chat-view.open{display:flex}
+.chat-top{
+  display:flex;align-items:center;gap:10px;padding:8px 0 12px;flex-shrink:0;
+}
+.back{
+  width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+  background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+}
+.chat-top .info{flex:1;min-width:0}
+.chat-top .info strong{display:block;font-size:14px;color:#efeaff}
+.chat-top .info span{font-size:11px;color:var(--b)}
 .chat{
   flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:8px 4px 16px;display:flex;flex-direction:column;gap:12px;
-  scroll-behavior:smooth;
+  padding:4px 0 12px;display:flex;flex-direction:column;gap:12px;
 }
-.msg{
-  max-width:88%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.45;
-  animation:in .25s ease;
-}
+.msg{max-width:88%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.45;animation:in .25s ease}
 @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .msg.bot{
-  align-self:flex-start;
-  background:var(--panel);border:1px solid var(--line);
-  border-bottom-left-radius:6px;color:var(--text);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  align-self:flex-start;background:var(--panel);border:1px solid var(--line);
+  border-bottom-left-radius:6px;backdrop-filter:blur(12px);
 }
 .msg.user{
-  align-self:flex-end;
-  background:linear-gradient(135deg,rgba(155,123,255,.35),rgba(92,225,230,.15));
-  border:1px solid rgba(155,123,255,.3);
-  border-bottom-right-radius:6px;color:#f0ecff;
+  align-self:flex-end;background:linear-gradient(135deg,rgba(155,123,255,.35),rgba(92,225,230,.12));
+  border:1px solid rgba(155,123,255,.28);border-bottom-right-radius:6px;color:#f0ecff;
 }
 .msg .meta{font-size:10px;color:var(--mute);margin-bottom:4px}
 .typing{display:flex;gap:4px;padding:4px 0}
-.typing span{
-  width:6px;height:6px;border-radius:50%;background:var(--a);
-  animation:ty 1.2s ease-in-out infinite;
-}
-.typing span:nth-child(2){animation-delay:.15s}
-.typing span:nth-child(3){animation-delay:.3s}
-@keyframes ty{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
-
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--a);animation:ty 1.2s ease-in-out infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes ty{0%,100%{opacity:.3}50%{opacity:1;transform:translateY(-3px)}}
 .suggest{
-  display:flex;gap:8px;overflow-x:auto;padding:0 4px 10px;flex-shrink:0;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  display:flex;gap:8px;overflow-x:auto;padding:0 0 8px;flex-shrink:0;scrollbar-width:none;
 }
 .suggest::-webkit-scrollbar{display:none}
 .chip-s{
-  flex-shrink:0;padding:8px 12px;border-radius:20px;font-size:12px;
-  border:1px solid var(--line);background:rgba(155,123,255,.08);color:var(--text);
-  cursor:pointer;white-space:nowrap;
+  flex-shrink:0;padding:8px 12px;border-radius:20px;font-size:12px;cursor:pointer;
+  border:1px solid var(--line);background:rgba(155,123,255,.08);color:var(--text);white-space:nowrap;
 }
-.chip-s:active{background:rgba(155,123,255,.2)}
-
 .composer{
-  flex-shrink:0;padding:10px 4px calc(12px + env(safe-area-inset-bottom));
-  display:flex;gap:8px;align-items:flex-end;
-  background:linear-gradient(180deg,transparent,rgba(7,6,15,.92) 30%);
+  flex-shrink:0;display:flex;gap:8px;align-items:flex-end;
+  padding:8px 0 calc(10px + env(safe-area-inset-bottom));
 }
 .composer textarea{
-  flex:1;min-height:44px;max-height:120px;resize:none;
-  padding:12px 14px;border-radius:14px;font-family:inherit;font-size:15px;
-  background:rgba(20,18,36,.9);border:1px solid var(--line);color:var(--text);
-  outline:none;line-height:1.35;
+  flex:1;min-height:44px;max-height:110px;resize:none;padding:12px 14px;border-radius:14px;
+  font-family:inherit;font-size:15px;background:rgba(20,18,36,.95);border:1px solid var(--line);
+  color:var(--text);outline:none;line-height:1.35;
 }
-.composer textarea:focus{border-color:rgba(155,123,255,.45);box-shadow:0 0 0 1px rgba(155,123,255,.15)}
+.composer textarea:focus{border-color:rgba(155,123,255,.45)}
 .composer textarea::placeholder{color:var(--mute)}
 .send{
   width:44px;height:44px;border-radius:14px;border:none;cursor:pointer;flex-shrink:0;
   background:linear-gradient(135deg,var(--a),#6b8cff);color:#fff;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 16px var(--glow);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px var(--glow);
 }
-.send:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.send:disabled{opacity:.4;cursor:not-allowed}
 .send svg{width:20px;height:20px}
-
-.foot{text-align:center;font-size:9px;color:#3a3550;padding-bottom:6px;letter-spacing:.5px;flex-shrink:0}
 </style>
 </head>
 <body>
-<div class="orb"></div>
 <div class="wrap">
-  <header class="top">
-    <div class="brand">
-      <div class="avatar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#c8b8ff" stroke-width="1.5">
+
+  <!-- HOME -->
+  <section id="home">
+    <div class="orb-wrap">
+      <div class="orb-glow"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-core">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#e0d4ff" stroke-width="1.4">
           <circle cx="12" cy="10" r="4"/>
           <path d="M6 20c1.5-3 4-4.5 6-4.5s4.5 1.5 6 4.5"/>
-          <circle cx="12" cy="10" r="1.2" fill="#5ce1e6" stroke="none"/>
+          <circle cx="12" cy="10" r="1.3" fill="#5ce1e6" stroke="none"/>
         </svg>
       </div>
-      <div>
-        <h1>Ai</h1>
-        <p>PXAX · neural node</p>
+    </div>
+    <div class="home-title">Ai</div>
+    <div class="home-sub">PXAX · neural node</div>
+    <div class="home-status"><span class="d"></span><span id="mode-label">local mode</span></div>
+    <div class="home-actions">
+      <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
+      <button type="button" class="btn-ghost" id="btn-about">О модуле</button>
+    </div>
+    <p class="home-hint">Сначала узел. Чат — когда будешь готов говорить.</p>
+    <div class="home-foot">v0.1 · Ai · PXAX ecosystem</div>
+  </section>
+
+  <!-- CHAT -->
+  <section id="chat-view">
+    <div class="chat-top">
+      <button type="button" class="back" id="btn-back" aria-label="Назад">‹</button>
+      <div class="info">
+        <strong>Ai</strong>
+        <span id="chat-status">online · local</span>
       </div>
     </div>
-    <div class="status-chip"><span class="d"></span><span id="mode-label">local</span></div>
-  </header>
+    <div class="chat" id="chat"></div>
+    <div class="suggest" id="suggest">
+      <button type="button" class="chip-s" data-q="Кто ты?">Кто ты?</button>
+      <button type="button" class="chip-s" data-q="Что умеешь?">Что умеешь?</button>
+      <button type="button" class="chip-s" data-q="Расскажи про PXAX">Про PXAX</button>
+      <button type="button" class="chip-s" data-q="Как работает Vph?">Про Vph</button>
+    </div>
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Сообщение…" maxlength="2000"></textarea>
+      <button type="button" class="send" id="send" aria-label="Отправить">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </section>
+</div>
 
-  <div class="chat" id="chat"></div>
-
-  <div class="suggest" id="suggest">
-    <button type="button" class="chip-s" data-q="Кто ты?">Кто ты?</button>
-    <button type="button" class="chip-s" data-q="Что умеешь?">Что умеешь?</button>
-    <button type="button" class="chip-s" data-q="Расскажи про PXAX">Про PXAX</button>
-    <button type="button" class="chip-s" data-q="Как работает Vph?">Про Vph</button>
+<div id="about">
+  <div class="about-box">
+    <h2>О модуле Ai</h2>
+    <p>Neural-узел экосистемы PXAX. Сейчас — local-режим: диалог на устройстве, подсказки по проекту.</p>
+    <p>Дальше: живая модель, голос, связь с профилем и другими мини-приложениями.</p>
+    <button type="button" id="about-close">Закрыть</button>
   </div>
-
-  <div class="composer">
-    <textarea id="input" rows="1" placeholder="Напиши сообщение…" maxlength="2000"></textarea>
-    <button type="button" class="send" id="send" aria-label="Отправить">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-    </button>
-  </div>
-  <div class="foot">v0.1 · Ai · PXAX ecosystem</div>
 </div>
 
 <script>
-/* ===== НАСТРОЙКИ ===== */
-const AI_API_URL = ''; // позже: URL прокси (Gemini / свой сервер / Ollama)
+const AI_API_URL = '';
 const BOT_NAME = 'Ai';
-/* ===================== */
 
 const storage = (() => {
   try { return localStorage; } catch {
@@ -200,17 +234,26 @@ if (window.Telegram?.WebApp) {
   tgUser = Telegram.WebApp.initDataUnsafe?.user || null;
 }
 
+const home = document.getElementById('home');
+const chatView = document.getElementById('chat-view');
 const chatEl = document.getElementById('chat');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send');
 const modeLabel = document.getElementById('mode-label');
+const chatStatus = document.getElementById('chat-status');
 
-if (AI_API_URL) modeLabel.textContent = 'online';
-else modeLabel.textContent = 'local';
+if (AI_API_URL) {
+  modeLabel.textContent = 'online mode';
+  chatStatus.textContent = 'online';
+} else {
+  modeLabel.textContent = 'local mode';
+  chatStatus.textContent = 'local';
+}
 
 const HISTORY_KEY = 'pxax_ai_history';
 let history = [];
 try { history = JSON.parse(storage.getItem(HISTORY_KEY) || '[]'); } catch { history = []; }
+let chatBooted = false;
 
 function haptic(t) {
   try {
@@ -221,14 +264,47 @@ function haptic(t) {
   } catch (e) {}
 }
 
+function openChat() {
+  haptic('select');
+  home.classList.add('hidden');
+  chatView.classList.add('open');
+  if (!chatBooted) {
+    chatBooted = true;
+    if (history.length) {
+      history.forEach(m => addMsg(m.role, m.text, false));
+    } else {
+      const name = tgUser?.first_name;
+      addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Спроси про PXAX или просто напиши.', true);
+    }
+  }
+  setTimeout(() => input.focus(), 300);
+}
+
+function closeChat() {
+  haptic('select');
+  chatView.classList.remove('open');
+  home.classList.remove('hidden');
+}
+
+document.getElementById('btn-chat').onclick = openChat;
+document.getElementById('btn-back').onclick = closeChat;
+document.getElementById('btn-about').onclick = () => {
+  haptic('select');
+  document.getElementById('about').classList.add('open');
+};
+document.getElementById('about-close').onclick = () => {
+  document.getElementById('about').classList.remove('open');
+};
+document.getElementById('about').addEventListener('click', e => {
+  if (e.target.id === 'about') e.currentTarget.classList.remove('open');
+});
+
 function addMsg(role, text, save = true) {
   const div = document.createElement('div');
   div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
   if (role === 'bot') {
     div.innerHTML = '<div class="meta">' + BOT_NAME + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
-  } else {
-    div.textContent = text;
-  }
+  } else div.textContent = text;
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
   if (save) {
@@ -237,134 +313,83 @@ function addMsg(role, text, save = true) {
     storage.setItem(HISTORY_KEY, JSON.stringify(history));
   }
 }
-
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-
 function showTyping() {
   const div = document.createElement('div');
-  div.className = 'msg bot';
-  div.id = 'typing';
+  div.className = 'msg bot'; div.id = 'typing';
   div.innerHTML = '<div class="meta">' + BOT_NAME + '</div><div class="typing"><span></span><span></span><span></span></div>';
-  chatEl.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
+  chatEl.appendChild(div); chatEl.scrollTop = chatEl.scrollHeight;
 }
+function hideTyping() { document.getElementById('typing')?.remove(); }
 
-function hideTyping() {
-  const t = document.getElementById('typing');
-  if (t) t.remove();
-}
-
-/* Локальные ответы v0.1 — заглушка до подключения модели */
 function localReply(q) {
   const s = q.toLowerCase().trim();
   const name = tgUser?.first_name || 'человек';
-
-  if (/кто ты|представ|имя/.test(s)) {
-    return 'Я Ai — neural-узел экосистемы PXAX. Пока работаю в локальном режиме: помню контекст чата на устройстве и жду подключения живой модели.';
-  }
-  if (/умеешь|можешь|функц|что дела/.test(s)) {
-    return 'Сейчас: диалог, подсказки по PXAX / Vph / PhxCoin, память сессии.\nСкоро: реальный LLM, эмоции, голос и связь с профилем экосистемы.';
-  }
-  if (/pxax|экосистем|проект/.test(s)) {
-    return 'PXAX — экосистема мини-приложений в Telegram:\n• заявки и профиль\n• Vph — доступ Phoenix\n• Ai — я\n• дальше PhxCoin и модули';
-  }
-  if (/vph|vpn|подписк|happ/.test(s)) {
-    return 'Vph — отдельное приложение доступа. Оформление подписки, ключ для Happ, статус «активна / не активна / истекла». Открой бота Vph в экосистеме.';
-  }
-  if (/phx|коин|тон|token|монет/.test(s)) {
-    return 'PhxCoin готовится в сети TON. В аппе заявок уже есть блок с курсом TON и местом под контракт после деплоя.';
-  }
-  if (/привет|здравств|hey|hello|ку\b/.test(s)) {
-    return 'Привет, ' + name + '. Я на связи. Спроси про PXAX или просто напиши, что нужно.';
-  }
-  if (/спасибо|благодар/.test(s)) {
-    return 'Всегда пожалуйста. Neural node не устаёт.';
-  }
-  if (/помощь|help|команд/.test(s)) {
-    return 'Просто пиши обычным языком. Быстрые темы: кто ты, PXAX, Vph, PhxCoin, что умеешь.';
-  }
-
-  const fallbacks = [
-    'Приняла. В local-режиме отвечаю шаблонами — подключи модель, и я стану умнее. Пока могу рассказать про экосистему PXAX.',
-    'Сигнал получен. Пока я без полного LLM: уточни вопрос про PXAX, Vph или PhxCoin — или оставь это как заметку на потом.',
-    'Слышу тебя. Расширенный интеллект подключится через AI_API_URL. До этого — гид по проекту и лёгкий диалог.'
+  if (/кто ты|представ|имя/.test(s))
+    return 'Я Ai — neural-узел экосистемы PXAX. Local-режим: контекст на устройстве, живая модель — позже.';
+  if (/умеешь|можешь|функц|что дела/.test(s))
+    return 'Сейчас: диалог и подсказки по PXAX / Vph / PhxCoin.\nСкоро: LLM, голос, связь с профилем.';
+  if (/pxax|экосистем|проект/.test(s))
+    return 'PXAX — мини-приложения в Telegram: заявки, Vph, Ai, дальше PhxCoin и модули.';
+  if (/vph|vpn|подписк|happ/.test(s))
+    return 'Vph — доступ Phoenix: подписка, ключ Happ, статусы активна / не активна / истекла.';
+  if (/phx|коин|тон|token|монет/.test(s))
+    return 'PhxCoin готовится в TON. В аппе заявок уже есть блок под курс и контракт.';
+  if (/привет|здравств|hey|hello|ку\b/.test(s))
+    return 'Привет, ' + name + '. Слушаю.';
+  if (/спасибо|благодар/.test(s)) return 'Всегда на связи.';
+  if (/помощь|help|команд/.test(s))
+    return 'Пиши обычным языком. Темы: кто ты, PXAX, Vph, PhxCoin.';
+  const f = [
+    'Приняла. В local пока шаблоны — подключи модель через AI_API_URL.',
+    'Сигнал есть. Уточни про PXAX, Vph или PhxCoin — или просто болтаем.',
+    'Слышу. Полный интеллект будет после API; до этого — гид по экосистеме.'
   ];
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  return f[Math.floor(Math.random() * f.length)];
 }
 
 async function getReply(userText) {
   if (!AI_API_URL) {
-    await delay(400 + Math.random() * 500);
+    await new Promise(r => setTimeout(r, 400 + Math.random() * 500));
     return localReply(userText);
   }
   try {
     const res = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: userText,
-        history: history.slice(-12),
-        user: tgUser ? { id: tgUser.id, name: tgUser.first_name } : null
-      })
+      body: JSON.stringify({ message: userText, history: history.slice(-12), user: tgUser ? { id: tgUser.id, name: tgUser.first_name } : null })
     });
     if (!res.ok) throw new Error('api');
     const data = await res.json();
     return data.reply || data.text || localReply(userText);
   } catch (e) {
-    return localReply(userText) + '\n\n(online недоступен — local fallback)';
+    return localReply(userText) + '\n\n(online недоступен — local)';
   }
 }
-
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 let busy = false;
 async function send(text) {
   text = (text || input.value).trim();
   if (!text || busy) return;
-  busy = true;
-  sendBtn.disabled = true;
-  input.value = '';
-  autoSize();
-  haptic('select');
-  addMsg('user', text);
-  showTyping();
+  busy = true; sendBtn.disabled = true; input.value = ''; autoSize();
+  haptic('select'); addMsg('user', text); showTyping();
   const reply = await getReply(text);
-  hideTyping();
-  addMsg('bot', reply);
-  haptic('success');
-  busy = false;
-  sendBtn.disabled = false;
-  input.focus();
+  hideTyping(); addMsg('bot', reply); haptic('success');
+  busy = false; sendBtn.disabled = false; input.focus();
 }
-
 function autoSize() {
   input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  input.style.height = Math.min(input.scrollHeight, 110) + 'px';
 }
-
-sendBtn.addEventListener('click', () => send());
-input.addEventListener('input', autoSize);
-input.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
-});
-
-document.getElementById('suggest').addEventListener('click', e => {
+sendBtn.onclick = () => send();
+input.oninput = autoSize;
+input.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+document.getElementById('suggest').onclick = e => {
   const b = e.target.closest('[data-q]');
   if (b) send(b.dataset.q);
-});
-
-/* старт */
-if (history.length) {
-  history.forEach(m => addMsg(m.role, m.text, false));
-} else {
-  const name = tgUser?.first_name;
-  addMsg('bot', (name ? name + ', п' : 'П') + 'ривет. Я Ai — узел экосистемы PXAX. Пока local-режим: можно болтать и спрашивать про проект. Живая модель подключится позже.');
-}
+};
 </script>
 </body>
 </html>
