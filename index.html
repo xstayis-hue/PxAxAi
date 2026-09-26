@@ -16,7 +16,6 @@ body{
   max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;
   -webkit-text-size-adjust:100%;position:relative;overflow:hidden;
 }
-/* depth fog */
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
@@ -25,8 +24,7 @@ body::before{
     linear-gradient(180deg,rgba(12,10,24,.2) 0%,transparent 30%,rgba(0,0,0,.35) 100%);
 }
 #fx,#net{position:fixed;inset:0;z-index:0;pointer-events:none}
-#fx{opacity:.5}
-#net{opacity:.35}
+#fx{opacity:.5}#net{opacity:.35}
 .parallax-layer{
   position:fixed;inset:-8%;z-index:0;pointer-events:none;
   background:radial-gradient(ellipse 60% 40% at 50% 30%,rgba(155,123,255,.12),transparent 60%);
@@ -45,15 +43,13 @@ body::before{
 }
 #home.hidden{display:none}
 
-/* character slot — CSS 3D */
 .char-stage{
   perspective:600px;margin-bottom:22px;
   width:180px;height:180px;display:flex;align-items:center;justify-content:center;
 }
 .char-slot{
   position:relative;width:168px;height:168px;
-  transform-style:preserve-3d;
-  transition:transform .12s ease-out;will-change:transform;
+  transform-style:preserve-3d;transition:transform .12s ease-out;will-change:transform;
 }
 .char-slot .halo{
   position:absolute;inset:-28px;border-radius:50%;
@@ -80,10 +76,8 @@ body::before{
   border:1px solid rgba(200,180,255,.35);
   background:radial-gradient(circle at 40% 28%,rgba(180,160,255,.45),rgba(40,30,80,.88) 52%,rgba(16,12,32,.98));
   box-shadow:0 0 40px rgba(155,123,255,.22),inset 0 -8px 24px rgba(0,0,0,.35),inset 0 8px 20px rgba(255,255,255,.06);
-  display:flex;align-items:center;justify-content:center;overflow:hidden;
-  transform-style:preserve-3d;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;transform-style:preserve-3d;
 }
-/* pseudo-3D silhouette layers */
 .sil-wrap{position:relative;width:72px;height:100px;transform-style:preserve-3d}
 .sil-wrap .s{
   position:absolute;left:50%;top:0;width:72px;height:96px;margin-left:-36px;
@@ -92,7 +86,7 @@ body::before{
 }
 .sil-wrap .s1{transform:translateZ(12px);opacity:.85;animation:sil-y 3.5s ease-in-out infinite}
 .sil-wrap .s2{transform:translateZ(4px) translateX(3px);opacity:.25;filter:blur(2px);background:rgba(40,20,80,.6)}
-.sil-wrap .s3{transform:translateZ(0px) translateX(-4px);opacity:.15;filter:blur(4px);background:rgba(92,225,230,.3)}
+.sil-wrap .s3{transform:translateZ(0) translateX(-4px);opacity:.15;filter:blur(4px);background:rgba(92,225,230,.3)}
 @keyframes sil-y{0%,100%{transform:translateZ(12px) translateY(0)}50%{transform:translateZ(12px) translateY(-4px)}}
 .char-core .slot-tag{
   position:absolute;bottom:12px;left:50%;transform:translateX(-50%) translateZ(14px);
@@ -116,29 +110,33 @@ body::before{
   background:linear-gradient(135deg,var(--a),#6b8cff);box-shadow:0 6px 24px var(--glow);
 }
 .btn-main:active{transform:scale(.98);opacity:.92}
-.btn-ghost{
-  width:100%;padding:14px;border-radius:14px;font-family:inherit;font-size:13px;font-weight:600;
-  cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--text);
+
+/* mini PXAXBET blink — как заголовок заявок */
+.btn-apps{
+  width:100%;padding:13px 14px;border-radius:14px;font-family:inherit;cursor:pointer;
+  background:rgba(0,0,0,.25);border:1px solid rgba(255,0,170,.25);
+  color:#ff6ec7;display:flex;flex-direction:column;align-items:center;gap:2px;
+  box-shadow:0 0 20px rgba(255,0,170,.08);
 }
+.btn-apps:active{transform:scale(.98);opacity:.9}
+.btn-apps .glitch-title{
+  font-size:15px;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;line-height:1.2;
+  text-shadow:0 0 8px rgba(255,0,200,.45),0 0 16px rgba(0,255,255,.15);
+  animation:title-flick 2.4s steps(1) infinite;
+}
+@keyframes title-flick{
+  0%,40%{opacity:1;content:none}
+  45%{opacity:.35}
+  50%,90%{opacity:1}
+  95%{opacity:.5}
+}
+.btn-apps .glitch-sub{
+  font-size:9px;letter-spacing:1px;color:rgba(255,150,220,.55);font-weight:500;
+}
+
 .home-hint{margin-top:18px;font-size:11px;color:var(--mute);line-height:1.45;max-width:290px}
 .home-foot{position:absolute;bottom:12px;left:0;right:0;font-size:9px;color:#3a3550;letter-spacing:.5px}
-
-#about{
-  display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.65);
-  align-items:flex-end;justify-content:center;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));
-}
-#about.open{display:flex}
-.about-box{
-  width:100%;max-width:400px;background:#12101c;border:1px solid var(--line);
-  border-radius:18px;padding:20px 18px;text-align:left;animation:sheet .28s ease;
-}
-@keyframes sheet{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
-.about-box h2{font-size:15px;color:#efeaff;margin-bottom:10px}
-.about-box p{font-size:13px;color:var(--mute);line-height:1.5;margin-bottom:10px}
-.about-box button{
-  width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1px solid var(--line);
-  background:rgba(155,123,255,.12);color:var(--text);font-family:inherit;font-size:13px;cursor:pointer;
-}
 
 #chat-view{
   display:none;flex-direction:column;height:100%;padding:0 12px;
@@ -162,7 +160,6 @@ body::before{
 }
 .mini-slot.think{
   border-color:rgba(92,225,230,.55);
-  box-shadow:0 0 0 0 rgba(92,225,230,.4);
   animation:mini-pulse 1.2s ease-out infinite;
 }
 @keyframes mini-pulse{
@@ -215,15 +212,10 @@ body::before{
 .composer textarea{
   flex:1;min-height:44px;max-height:110px;resize:none;padding:12px 14px;border-radius:14px;
   font-family:inherit;font-size:15px;background:rgba(20,18,36,.95);border:1px solid var(--line);
-  color:var(--text);outline:none;line-height:1.35;
-  transition:border-color .25s,box-shadow .35s;
+  color:var(--text);outline:none;line-height:1.35;transition:border-color .25s,box-shadow .35s;
 }
 .composer textarea:focus{
   border-color:rgba(155,123,255,.5);
-  box-shadow:
-    0 0 0 1px rgba(155,123,255,.2),
-    0 0 24px rgba(155,123,255,.12),
-    0 0 48px rgba(92,225,230,.06);
   animation:input-wave 1.8s ease-in-out infinite;
 }
 @keyframes input-wave{
@@ -255,9 +247,7 @@ body::before{
         <div class="ring2"></div>
         <div class="char-core">
           <div class="sil-wrap" aria-hidden="true">
-            <div class="s s3"></div>
-            <div class="s s2"></div>
-            <div class="s s1"></div>
+            <div class="s s3"></div><div class="s s2"></div><div class="s s1"></div>
           </div>
           <span class="slot-tag">avatar soon</span>
         </div>
@@ -268,7 +258,10 @@ body::before{
     <div class="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
-      <button type="button" class="btn-ghost" id="btn-about">О модуле</button>
+      <button type="button" class="btn-apps" id="btn-apps" aria-label="Открыть заявки">
+        <span class="glitch-title" id="apps-title">PXAXBET</span>
+        <span class="glitch-sub">заявки · экосистема</span>
+      </button>
     </div>
     <p class="home-hint">Тестовая версия приложения. Будет обновляться — интерфейс, персонаж и ИИ.</p>
     <div class="home-foot">v0.5 · Ai · PXAX ecosystem</div>
@@ -277,7 +270,9 @@ body::before{
   <section id="chat-view">
     <div class="chat-top">
       <button type="button" class="back" id="btn-back" aria-label="Назад">‹</button>
-      <div class="mini-slot" id="mini-slot" aria-hidden="true"><div class="sil" style="width:18px;height:24px;border-radius:10px;background:linear-gradient(180deg,rgba(230,220,255,.5),rgba(120,100,180,.3))"></div></div>
+      <div class="mini-slot" id="mini-slot" aria-hidden="true">
+        <div class="sil"></div>
+      </div>
       <div class="info">
         <strong>Ai</strong>
         <span id="chat-status">online</span>
@@ -299,17 +294,10 @@ body::before{
   </section>
 </div>
 
-<div id="about">
-  <div class="about-box">
-    <h2>О модуле Ai</h2>
-    <p>Тестовый neural-companion экосистемы PXAX. Ответы через Cloudflare Workers AI.</p>
-    <p>Впереди: Live2D в слоте, персона, связь с другими мини-приложениями.</p>
-    <button type="button" id="about-close">Закрыть</button>
-  </div>
-</div>
-
 <script>
 const AI_API_URL = 'https://pxaxai.xstayis.workers.dev';
+const APPS_BOT = ''; // username бота заявок без @  например 'pxaxbet_bot'
+const APPS_URL = ''; // или полный https://t.me/... / github pages — если задан, приоритетнее
 const BOT_NAME = 'Ai';
 
 const storage = (() => {
@@ -327,31 +315,51 @@ if (window.Telegram?.WebApp) {
   tgUser = Telegram.WebApp.initDataUnsafe?.user || null;
 }
 
-/* —— parallax + CSS 3D slot tilt —— */
+/* PXAXBET ↔ PXAXBYTE */
+(function blinkTitle() {
+  const el = document.getElementById('apps-title');
+  let a = true;
+  setInterval(() => {
+    a = !a;
+    el.textContent = a ? 'PXAXBET' : 'PXAXBYTE';
+  }, 1600);
+})();
+
+function openApps() {
+  haptic('select');
+  const url = APPS_URL || (APPS_BOT ? 'https://t.me/' + APPS_BOT.replace(/^@/, '') : '');
+  if (!url) {
+    alert('Укажи APPS_BOT или APPS_URL в коде');
+    return;
+  }
+  try {
+    if (window.Telegram?.WebApp?.openTelegramLink && url.indexOf('t.me') !== -1) {
+      Telegram.WebApp.openTelegramLink(url);
+      return;
+    }
+    if (window.Telegram?.WebApp?.openLink) {
+      Telegram.WebApp.openLink(url);
+      return;
+    }
+  } catch (e) {}
+  window.open(url, '_blank');
+}
+document.getElementById('btn-apps').onclick = openApps;
+
 const parallax = document.getElementById('parallax');
 const charSlot = document.getElementById('char-slot');
 let tiltX = 0, tiltY = 0, targetTX = 0, targetTY = 0;
-
 function onPointer(clientX, clientY) {
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
-  const dx = (clientX - cx) / cx;
-  const dy = (clientY - cy) / cy;
-  targetTX = dy * -10;
-  targetTY = dx * 12;
+  const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+  const dx = (clientX - cx) / cx, dy = (clientY - cy) / cy;
+  targetTX = dy * -10; targetTY = dx * 12;
   parallax.style.transform = 'translate(' + (dx * 12) + 'px,' + (dy * 10) + 'px)';
 }
-function resetTilt() {
-  targetTX = 0; targetTY = 0;
-  parallax.style.transform = 'translate(0,0)';
-}
+function resetTilt() { targetTX = 0; targetTY = 0; parallax.style.transform = 'translate(0,0)'; }
 window.addEventListener('pointermove', e => onPointer(e.clientX, e.clientY), { passive: true });
 window.addEventListener('pointerleave', resetTilt);
-window.addEventListener('touchmove', e => {
-  if (e.touches[0]) onPointer(e.touches[0].clientX, e.touches[0].clientY);
-}, { passive: true });
+window.addEventListener('touchmove', e => { if (e.touches[0]) onPointer(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
 window.addEventListener('touchend', resetTilt);
-
 (function tiltLoop() {
   tiltX += (targetTX - tiltX) * 0.08;
   tiltY += (targetTY - tiltY) * 0.08;
@@ -359,19 +367,15 @@ window.addEventListener('touchend', resetTilt);
   requestAnimationFrame(tiltLoop);
 })();
 
-/* —— neural field —— */
 (function neural() {
-  const c = document.getElementById('net');
-  const ctx = c.getContext('2d');
+  const c = document.getElementById('net'); const ctx = c.getContext('2d');
   let w, h, nodes = [];
   function resize() {
-    w = c.width = window.innerWidth;
-    h = c.height = window.innerHeight;
+    w = c.width = window.innerWidth; h = c.height = window.innerHeight;
     const n = Math.min(28, Math.floor((w * h) / 28000));
     nodes = Array.from({ length: n }, () => ({
       x: Math.random() * w, y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: (Math.random() - 0.5) * 0.35
+      vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35
     }));
   }
   function tick() {
@@ -384,8 +388,7 @@ window.addEventListener('touchend', resetTilt);
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i], b = nodes[j];
-        const dx = a.x - b.x, dy = a.y - b.y;
-        const d = Math.sqrt(dx * dx + dy * dy);
+        const dx = a.x - b.x, dy = a.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
         if (d < 140) {
           ctx.strokeStyle = 'rgba(155,123,255,' + (0.12 * (1 - d / 140)) + ')';
           ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
@@ -393,30 +396,22 @@ window.addEventListener('touchend', resetTilt);
       }
     }
     for (const p of nodes) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(92,225,230,.35)';
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(92,225,230,.35)'; ctx.fill();
     }
     requestAnimationFrame(tick);
   }
   resize(); window.addEventListener('resize', resize); tick();
 })();
 
-/* —— soft particles —— */
 (function particles() {
-  const c = document.getElementById('fx');
-  const ctx = c.getContext('2d');
+  const c = document.getElementById('fx'); const ctx = c.getContext('2d');
   let w, h, dots = [];
   function resize() {
-    w = c.width = window.innerWidth;
-    h = c.height = window.innerHeight;
+    w = c.width = window.innerWidth; h = c.height = window.innerHeight;
     dots = Array.from({ length: 28 }, () => ({
-      x: Math.random() * w, y: Math.random() * h,
-      r: Math.random() * 1.5 + 0.3,
-      vx: (Math.random() - 0.5) * 0.2,
-      vy: -0.1 - Math.random() * 0.2,
-      a: Math.random() * 0.35 + 0.08
+      x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.5 + 0.3,
+      vx: (Math.random() - 0.5) * 0.2, vy: -0.1 - Math.random() * 0.2, a: Math.random() * 0.35 + 0.08
     }));
   }
   function tick() {
@@ -426,8 +421,7 @@ window.addEventListener('touchend', resetTilt);
       if (p.y < -5) { p.y = h + 4; p.x = Math.random() * w; }
       if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(155,123,255,' + p.a + ')';
-      ctx.fill();
+      ctx.fillStyle = 'rgba(155,123,255,' + p.a + ')'; ctx.fill();
     }
     requestAnimationFrame(tick);
   }
@@ -451,17 +445,9 @@ let chatBooted = false;
 (async function pingApi() {
   try {
     const r = await fetch(AI_API_URL, { method: 'GET' });
-    if (r.ok) {
-      modeLabel.textContent = 'online · workers ai';
-      chatStatus.textContent = 'online · llama';
-    } else {
-      modeLabel.textContent = 'api error';
-      chatStatus.textContent = 'offline';
-    }
-  } catch (e) {
-    modeLabel.textContent = 'offline';
-    chatStatus.textContent = 'offline';
-  }
+    if (r.ok) { modeLabel.textContent = 'online · workers ai'; chatStatus.textContent = 'online · llama'; }
+    else { modeLabel.textContent = 'api error'; chatStatus.textContent = 'offline'; }
+  } catch (e) { modeLabel.textContent = 'offline'; chatStatus.textContent = 'offline'; }
 })();
 
 function haptic(t) {
@@ -473,16 +459,13 @@ function haptic(t) {
     else h.selectionChanged();
   } catch (e) {}
 }
-
 function setThinking(on) {
   charSlot.classList.toggle('think', on);
   miniSlot.classList.toggle('think', on);
 }
-
 function openChat() {
   haptic('select');
-  home.classList.add('hidden');
-  chatView.classList.add('open');
+  home.classList.add('hidden'); chatView.classList.add('open');
   if (!chatBooted) {
     chatBooted = true;
     if (history.length) history.forEach(m => addMsg(m.role, m.text, false));
@@ -495,32 +478,17 @@ function openChat() {
 }
 function closeChat() {
   haptic('select');
-  chatView.classList.remove('open');
-  home.classList.remove('hidden');
-  setThinking(false);
+  chatView.classList.remove('open'); home.classList.remove('hidden'); setThinking(false);
 }
-
 document.getElementById('btn-chat').onclick = openChat;
 document.getElementById('btn-back').onclick = closeChat;
-document.getElementById('btn-about').onclick = () => {
-  haptic('select');
-  document.getElementById('about').classList.add('open');
-};
-document.getElementById('about-close').onclick = () => {
-  document.getElementById('about').classList.remove('open');
-};
-document.getElementById('about').addEventListener('click', e => {
-  if (e.target.id === 'about') e.currentTarget.classList.remove('open');
-});
 
 function addMsg(role, text, save = true) {
   const div = document.createElement('div');
   div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
-  if (role === 'bot') {
-    div.innerHTML = '<div class="meta">' + BOT_NAME + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
-  } else div.textContent = text;
-  chatEl.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
+  if (role === 'bot') div.innerHTML = '<div class="meta">' + BOT_NAME + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
+  else div.textContent = text;
+  chatEl.appendChild(div); chatEl.scrollTop = chatEl.scrollHeight;
   if (save) {
     history.push({ role, text, t: Date.now() });
     if (history.length > 80) history = history.slice(-80);
@@ -532,33 +500,24 @@ function escapeHtml(s) {
 }
 function showTyping() {
   const div = document.createElement('div');
-  div.className = 'msg bot'; div.id = 'typing';
-  div.style.animation = 'none';
+  div.className = 'msg bot'; div.id = 'typing'; div.style.animation = 'none';
   div.innerHTML = '<div class="meta">' + BOT_NAME + '</div><div class="typing"><span></span><span></span><span></span></div>';
   chatEl.appendChild(div); chatEl.scrollTop = chatEl.scrollHeight;
 }
 function hideTyping() { document.getElementById('typing')?.remove(); }
-
-function localReply(q) {
-  return 'Сейчас нет связи с Workers AI.\n«' + q.slice(0, 100) + '»';
-}
+function localReply(q) { return 'Сейчас нет связи с Workers AI.\n«' + q.slice(0, 100) + '»'; }
 
 async function getReply(userText) {
   try {
     const res = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: userText,
-        history: history.slice(-8).map(m => ({ role: m.role, text: m.text }))
-      })
+      body: JSON.stringify({ message: userText, history: history.slice(-8).map(m => ({ role: m.role, text: m.text })) })
     });
     const data = await res.json();
     if (data.reply) return String(data.reply);
     return localReply(userText);
-  } catch (e) {
-    return localReply(userText) + '\n(' + e.message + ')';
-  }
+  } catch (e) { return localReply(userText) + '\n(' + e.message + ')'; }
 }
 
 let busy = false;
@@ -566,14 +525,10 @@ async function send(text) {
   text = (text || input.value).trim();
   if (!text || busy) return;
   busy = true; sendBtn.disabled = true; input.value = ''; autoSize();
-  haptic('select');
-  addMsg('user', text);
-  setThinking(true); showTyping();
+  haptic('select'); addMsg('user', text); setThinking(true); showTyping();
   const reply = await getReply(text);
-  hideTyping(); setThinking(false);
-  addMsg('bot', reply);
-  if (/Workers AI error|нет связи|offline/i.test(reply)) haptic('error');
-  else haptic('success');
+  hideTyping(); setThinking(false); addMsg('bot', reply);
+  if (/Workers AI error|нет связи|offline/i.test(reply)) haptic('error'); else haptic('success');
   busy = false; sendBtn.disabled = false; input.focus();
 }
 function autoSize() {
