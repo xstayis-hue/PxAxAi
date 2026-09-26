@@ -111,28 +111,34 @@ body::before{
 }
 .btn-main:active{transform:scale(.98);opacity:.92}
 
-/* mini PXAXBET blink — как заголовок заявок */
 .btn-apps{
-  width:100%;padding:13px 14px;border-radius:14px;font-family:inherit;cursor:pointer;
-  background:rgba(0,0,0,.25);border:1px solid rgba(255,0,170,.25);
-  color:#ff6ec7;display:flex;flex-direction:column;align-items:center;gap:2px;
-  box-shadow:0 0 20px rgba(255,0,170,.08);
+  width:100%;padding:14px 12px 12px;border-radius:14px;font-family:inherit;cursor:pointer;
+  background:rgba(0,0,0,.35);border:1px solid rgba(0,255,255,.22);
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  box-shadow:0 0 24px rgba(255,0,170,.12),inset 0 0 20px rgba(0,255,255,.04);
+  position:relative;overflow:hidden;
 }
-.btn-apps:active{transform:scale(.98);opacity:.9}
+.btn-apps:active{transform:scale(.98);opacity:.92}
 .btn-apps .glitch-title{
-  font-size:15px;font-weight:800;letter-spacing:2px;
-  text-transform:uppercase;line-height:1.2;
-  text-shadow:0 0 8px rgba(255,0,200,.45),0 0 16px rgba(0,255,255,.15);
-  animation:title-flick 2.4s steps(1) infinite;
+  font-size:20px;font-weight:900;letter-spacing:3px;text-transform:uppercase;line-height:1.15;
+  color:#fff;font-family:Impact,'Arial Black',system-ui,sans-serif;
+  text-shadow:
+    0 0 6px #ff00aa,
+    0 0 14px rgba(255,0,170,.7),
+    0 0 28px rgba(0,255,255,.35),
+    2px 0 0 rgba(255,0,100,.5),
+    -2px 0 0 rgba(0,255,255,.4);
+  animation:title-blink 1.6s steps(1) infinite;
 }
-@keyframes title-flick{
-  0%,40%{opacity:1;content:none}
-  45%{opacity:.35}
-  50%,90%{opacity:1}
-  95%{opacity:.5}
+@keyframes title-blink{
+  0%,42%{opacity:1;filter:none}
+  43%{opacity:.25;filter:hue-rotate(40deg)}
+  44%,86%{opacity:1;filter:none}
+  87%{opacity:.4;transform:translateX(1px)}
+  88%,100%{opacity:1;transform:none}
 }
 .btn-apps .glitch-sub{
-  font-size:9px;letter-spacing:1px;color:rgba(255,150,220,.55);font-weight:500;
+  font-size:10px;letter-spacing:2px;color:rgba(0,255,255,.55);font-weight:500;text-transform:lowercase;
 }
 
 .home-hint{margin-top:18px;font-size:11px;color:var(--mute);line-height:1.45;max-width:290px}
@@ -156,7 +162,6 @@ body::before{
   background:radial-gradient(circle at 40% 30%,rgba(155,123,255,.4),rgba(30,20,60,.95));
   box-shadow:0 0 12px rgba(155,123,255,.2);
   display:flex;align-items:center;justify-content:center;overflow:hidden;
-  transition:box-shadow .25s,border-color .25s;
 }
 .mini-slot.think{
   border-color:rgba(92,225,230,.55);
@@ -260,19 +265,17 @@ body::before{
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
       <button type="button" class="btn-apps" id="btn-apps" aria-label="Открыть заявки">
         <span class="glitch-title" id="apps-title">PXAXBET</span>
-        <span class="glitch-sub">заявки · экосистема</span>
+        <span class="glitch-sub">заявки</span>
       </button>
     </div>
     <p class="home-hint">Тестовая версия приложения. Будет обновляться — интерфейс, персонаж и ИИ.</p>
-    <div class="home-foot">v0.5 · Ai · PXAX ecosystem</div>
+    <div class="home-foot">v0.4 · Ai · PXAX ecosystem</div>
   </section>
 
   <section id="chat-view">
     <div class="chat-top">
       <button type="button" class="back" id="btn-back" aria-label="Назад">‹</button>
-      <div class="mini-slot" id="mini-slot" aria-hidden="true">
-        <div class="sil"></div>
-      </div>
+      <div class="mini-slot" id="mini-slot" aria-hidden="true"><div class="sil"></div></div>
       <div class="info">
         <strong>Ai</strong>
         <span id="chat-status">online</span>
@@ -296,8 +299,8 @@ body::before{
 
 <script>
 const AI_API_URL = 'https://pxaxai.xstayis.workers.dev';
-const APPS_BOT = ''; // username бота заявок без @  например 'pxaxbet_bot'
-const APPS_URL = ''; // или полный https://t.me/... / github pages — если задан, приоритетнее
+const APPS_BOT = '';
+const APPS_URL = 'https://xstayis-hue.github.io/pxaxbetpay/';
 const BOT_NAME = 'Ai';
 
 const storage = (() => {
@@ -315,7 +318,6 @@ if (window.Telegram?.WebApp) {
   tgUser = Telegram.WebApp.initDataUnsafe?.user || null;
 }
 
-/* PXAXBET ↔ PXAXBYTE */
 (function blinkTitle() {
   const el = document.getElementById('apps-title');
   let a = true;
@@ -328,10 +330,7 @@ if (window.Telegram?.WebApp) {
 function openApps() {
   haptic('select');
   const url = APPS_URL || (APPS_BOT ? 'https://t.me/' + APPS_BOT.replace(/^@/, '') : '');
-  if (!url) {
-    alert('Укажи APPS_BOT или APPS_URL в коде');
-    return;
-  }
+  if (!url) return;
   try {
     if (window.Telegram?.WebApp?.openTelegramLink && url.indexOf('t.me') !== -1) {
       Telegram.WebApp.openTelegramLink(url);
@@ -512,7 +511,10 @@ async function getReply(userText) {
     const res = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userText, history: history.slice(-8).map(m => ({ role: m.role, text: m.text })) })
+      body: JSON.stringify({
+        message: userText,
+        history: history.slice(-8).map(m => ({ role: m.role, text: m.text }))
+      })
     });
     const data = await res.json();
     if (data.reply) return String(data.reply);
