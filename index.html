@@ -262,8 +262,8 @@ body::before{
 </div>
 <script>
 const AI_API_URL = 'https://pxaxai.xstayis.workers.dev';
-/* прямая ссылка на заявки — не оставляй пустой */
-const APPS_LINK = 'https://xstayis-hue.github.io/pxaxbetpay/';
+/* только t.me — открывается внутри Telegram */
+const APPS_LINK = 'https://t.me/pxaxbetpay_bot';
 const BOT_NAME = 'Ai';
 
 const storage = (() => {
@@ -291,22 +291,30 @@ if (window.Telegram && Telegram.WebApp) {
 })();
 
 function openApps() {
-  haptic('select');
-  var url = APPS_LINK;
-  if (!url) return;
   try {
-    if (url.indexOf('t.me/') !== -1 && Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
+    if (Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+      Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+  } catch (e) {}
+
+  var url = APPS_LINK;
+
+  /* внутри TG — без браузера и без показа github */
+  try {
+    if (Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
       Telegram.WebApp.openTelegramLink(url);
       return;
     }
-  } catch (e) {}
+  } catch (e1) {}
+
   try {
     if (Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
       Telegram.WebApp.openLink(url);
       return;
     }
   } catch (e2) {}
-  window.open(url, '_blank');
+
+  window.location.href = url;
 }
 document.getElementById('btn-apps').addEventListener('click', openApps);
 
