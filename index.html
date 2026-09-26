@@ -24,7 +24,6 @@ body::before{
 }
 .wrap{position:relative;z-index:1;height:100vh;height:100dvh;display:flex;flex-direction:column}
 
-/* —— HOME —— */
 #home{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:24px 20px calc(24px + env(safe-area-inset-bottom));text-align:center;
@@ -73,7 +72,6 @@ body::before{
 .home-hint{margin-top:20px;font-size:11px;color:var(--mute);line-height:1.4;max-width:280px}
 .home-foot{position:absolute;bottom:12px;left:0;right:0;font-size:9px;color:#3a3550;letter-spacing:.5px}
 
-/* —— ABOUT sheet —— */
 #about{
   display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.65);
   align-items:flex-end;justify-content:center;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));
@@ -90,15 +88,12 @@ body::before{
   background:rgba(155,123,255,.12);color:var(--text);font-family:inherit;font-size:13px;cursor:pointer;
 }
 
-/* —— CHAT —— */
 #chat-view{
   display:none;flex-direction:column;height:100%;padding:0 12px;
   padding-top:max(8px,env(safe-area-inset-top));
 }
 #chat-view.open{display:flex}
-.chat-top{
-  display:flex;align-items:center;gap:10px;padding:8px 0 12px;flex-shrink:0;
-}
+.chat-top{display:flex;align-items:center;gap:10px;padding:8px 0 12px;flex-shrink:0}
 .back{
   width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
   background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;
@@ -126,9 +121,7 @@ body::before{
 .typing span{width:6px;height:6px;border-radius:50%;background:var(--a);animation:ty 1.2s ease-in-out infinite}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes ty{0%,100%{opacity:.3}50%{opacity:1;transform:translateY(-3px)}}
-.suggest{
-  display:flex;gap:8px;overflow-x:auto;padding:0 0 8px;flex-shrink:0;scrollbar-width:none;
-}
+.suggest{display:flex;gap:8px;overflow-x:auto;padding:0 0 8px;flex-shrink:0;scrollbar-width:none}
 .suggest::-webkit-scrollbar{display:none}
 .chip-s{
   flex-shrink:0;padding:8px 12px;border-radius:20px;font-size:12px;cursor:pointer;
@@ -157,7 +150,6 @@ body::before{
 <body>
 <div class="wrap">
 
-  <!-- HOME -->
   <section id="home">
     <div class="orb-wrap">
       <div class="orb-glow"></div>
@@ -172,30 +164,29 @@ body::before{
     </div>
     <div class="home-title">Ai</div>
     <div class="home-sub">PXAX · neural node</div>
-    <div class="home-status"><span class="d"></span><span id="mode-label">local mode</span></div>
+    <div class="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
       <button type="button" class="btn-ghost" id="btn-about">О модуле</button>
     </div>
     <p class="home-hint">Сначала узел. Чат — когда будешь готов говорить.</p>
-    <div class="home-foot">v0.1 · Ai · PXAX ecosystem</div>
+    <div class="home-foot">v0.2 · Ai · PXAX ecosystem</div>
   </section>
 
-  <!-- CHAT -->
   <section id="chat-view">
     <div class="chat-top">
       <button type="button" class="back" id="btn-back" aria-label="Назад">‹</button>
       <div class="info">
         <strong>Ai</strong>
-        <span id="chat-status">online · local</span>
+        <span id="chat-status">online</span>
       </div>
     </div>
     <div class="chat" id="chat"></div>
     <div class="suggest" id="suggest">
-      <button type="button" class="chip-s" data-q="Кто ты?">Кто ты?</button>
-      <button type="button" class="chip-s" data-q="Что умеешь?">Что умеешь?</button>
-      <button type="button" class="chip-s" data-q="Расскажи про PXAX">Про PXAX</button>
-      <button type="button" class="chip-s" data-q="Как работает Vph?">Про Vph</button>
+      <button type="button" class="chip-s" data-q="Привет! Кто ты?">Кто ты?</button>
+      <button type="button" class="chip-s" data-q="Расскажи короткий факт">Факт</button>
+      <button type="button" class="chip-s" data-q="Помоги сформулировать идею">Идея</button>
+      <button type="button" class="chip-s" data-q="Что такое нейронная сеть простыми словами?">Нейросети</button>
     </div>
     <div class="composer">
       <textarea id="input" rows="1" placeholder="Сообщение…" maxlength="2000"></textarea>
@@ -209,14 +200,14 @@ body::before{
 <div id="about">
   <div class="about-box">
     <h2>О модуле Ai</h2>
-    <p>Neural-узел экосистемы PXAX. Сейчас — local-режим: диалог на устройстве, подсказки по проекту.</p>
-    <p>Дальше: живая модель, голос, связь с профилем и другими мини-приложениями.</p>
+    <p>Neural-узел экосистемы PXAX. Ответы через Cloudflare Workers AI (бесплатный текстовый ИИ).</p>
+    <p>Дальше: персона, голос, связь с профилем и другими мини-приложениями.</p>
     <button type="button" id="about-close">Закрыть</button>
   </div>
 </div>
 
 <script>
-const AI_API_URL = '';
+const AI_API_URL = 'https://pxaxai.xstayis.workers.dev';
 const BOT_NAME = 'Ai';
 
 const storage = (() => {
@@ -242,18 +233,26 @@ const sendBtn = document.getElementById('send');
 const modeLabel = document.getElementById('mode-label');
 const chatStatus = document.getElementById('chat-status');
 
-if (AI_API_URL) {
-  modeLabel.textContent = 'online mode';
-  chatStatus.textContent = 'online';
-} else {
-  modeLabel.textContent = 'local mode';
-  chatStatus.textContent = 'local';
-}
-
 const HISTORY_KEY = 'pxax_ai_history';
 let history = [];
 try { history = JSON.parse(storage.getItem(HISTORY_KEY) || '[]'); } catch { history = []; }
 let chatBooted = false;
+
+(async function pingApi() {
+  try {
+    const r = await fetch(AI_API_URL, { method: 'GET' });
+    if (r.ok) {
+      modeLabel.textContent = 'online · workers ai';
+      chatStatus.textContent = 'online · llama';
+    } else {
+      modeLabel.textContent = 'api error';
+      chatStatus.textContent = 'offline';
+    }
+  } catch (e) {
+    modeLabel.textContent = 'offline · local';
+    chatStatus.textContent = 'offline';
+  }
+})();
 
 function haptic(t) {
   try {
@@ -274,7 +273,7 @@ function openChat() {
       history.forEach(m => addMsg(m.role, m.text, false));
     } else {
       const name = tgUser?.first_name;
-      addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Спроси про PXAX или просто напиши.', true);
+      addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Пиши что угодно — отвечу через нейросеть.', true);
     }
   }
   setTimeout(() => input.focus(), 300);
@@ -325,47 +324,24 @@ function showTyping() {
 function hideTyping() { document.getElementById('typing')?.remove(); }
 
 function localReply(q) {
-  const s = q.toLowerCase().trim();
-  const name = tgUser?.first_name || 'человек';
-  if (/кто ты|представ|имя/.test(s))
-    return 'Я Ai — neural-узел экосистемы PXAX. Local-режим: контекст на устройстве, живая модель — позже.';
-  if (/умеешь|можешь|функц|что дела/.test(s))
-    return 'Сейчас: диалог и подсказки по PXAX / Vph / PhxCoin.\nСкоро: LLM, голос, связь с профилем.';
-  if (/pxax|экосистем|проект/.test(s))
-    return 'PXAX — мини-приложения в Telegram: заявки, Vph, Ai, дальше PhxCoin и модули.';
-  if (/vph|vpn|подписк|happ/.test(s))
-    return 'Vph — доступ Phoenix: подписка, ключ Happ, статусы активна / не активна / истекла.';
-  if (/phx|коин|тон|token|монет/.test(s))
-    return 'PhxCoin готовится в TON. В аппе заявок уже есть блок под курс и контракт.';
-  if (/привет|здравств|hey|hello|ку\b/.test(s))
-    return 'Привет, ' + name + '. Слушаю.';
-  if (/спасибо|благодар/.test(s)) return 'Всегда на связи.';
-  if (/помощь|help|команд/.test(s))
-    return 'Пиши обычным языком. Темы: кто ты, PXAX, Vph, PhxCoin.';
-  const f = [
-    'Приняла. В local пока шаблоны — подключи модель через AI_API_URL.',
-    'Сигнал есть. Уточни про PXAX, Vph или PhxCoin — или просто болтаем.',
-    'Слышу. Полный интеллект будет после API; до этого — гид по экосистеме.'
-  ];
-  return f[Math.floor(Math.random() * f.length)];
+  return 'Сейчас нет связи с Workers AI. Проверь binding AI у воркера и URL.\nТы написал: «' + q.slice(0, 120) + '»';
 }
 
 async function getReply(userText) {
-  if (!AI_API_URL) {
-    await new Promise(r => setTimeout(r, 400 + Math.random() * 500));
-    return localReply(userText);
-  }
   try {
     const res = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userText, history: history.slice(-12), user: tgUser ? { id: tgUser.id, name: tgUser.first_name } : null })
+      body: JSON.stringify({
+        message: userText,
+        history: history.slice(-8).map(m => ({ role: m.role, text: m.text }))
+      })
     });
-    if (!res.ok) throw new Error('api');
     const data = await res.json();
-    return data.reply || data.text || localReply(userText);
+    if (data.reply) return String(data.reply);
+    return localReply(userText);
   } catch (e) {
-    return localReply(userText) + '\n\n(online недоступен — local)';
+    return localReply(userText) + '\n(' + e.message + ')';
   }
 }
 
