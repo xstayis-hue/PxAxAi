@@ -264,15 +264,29 @@ body::before{
 const AI_API_URL = 'https://pxaxai.xstayis.workers.dev';
 const APPS_LINK = 'https://t.me/pxaxbetpay_bot';
 const BOT_NAME = 'Ai';
+const FETCH_MS = 25000;
 
-const storage = (() => {
-  try { return localStorage; } catch {
-    const d = {};
-    return { getItem: k => d[k] || null, setItem: (k, v) => { d[k] = v; } };
+/* storage: localStorage → memory (TG иногда блокирует LS) */
+var memStore = {};
+var storage = {
+  getItem: function (k) {
+    try {
+      if (window.localStorage) {
+        var v = localStorage.getItem(k);
+        if (v != null) return v;
+      }
+    } catch (e) {}
+    return memStore[k] != null ? memStore[k] : null;
+  },
+  setItem: function (k, v) {
+    memStore[k] = v;
+    try {
+      if (window.localStorage) localStorage.setItem(k, v);
+    } catch (e) {}
   }
-})();
+};
 
-let tgUser = null;
+var tgUser = null;
 if (window.Telegram && Telegram.WebApp) {
   Telegram.WebApp.ready();
   Telegram.WebApp.expand();
@@ -302,12 +316,6 @@ function openApps() {
       return;
     }
   } catch (e1) {}
-  try {
-    if (Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
-      Telegram.WebApp.openLink(url);
-      return;
-    }
-  } catch (e2) {}
   window.location.href = url;
 }
 document.getElementById('btn-apps').addEventListener('click', openApps);
@@ -413,19 +421,26 @@ var sendBtn = document.getElementById('send');
 var modeLabel = document.getElementById('mode-label');
 var chatStatus = document.getElementById('chat-status');
 var miniSlot = document.getElementById('mini-slot');
-var HISTORY_KEY = 'pxax_ai_history';
+var HISTORY_KEY = 'pxax_ai_history_v2';
 var history = [];
-try { history = JSON.parse(storage.getItem(HISTORY_KEY) || '[]'); } catch (e) { history = []; }
+try {
+  history = JSON.parse(storage.getItem(HISTORY_KEY) || '[]');
+  if (!Array.isArray(history)) history = [];
+} catch (e) { history = []; }
 var chatBooted = false;
+var busy = false;
 
 (async function pingApi() {
   try {
-    var r = await fetch(AI_API_URL, { method: 'GET' });
+    var ctrl = new AbortController();
+    var t = setTimeout(function () { ctrl.abort(); }, 8000);
+    var r = await fetch(AI_API_URL, { method: 'GET', signal: ctrl.signal });
+    clearTimeout(t);
     if (r.ok) {
       modeLabel.textContent = 'online · workers ai';
       chatStatus.textContent = 'online · llama';
     } else {
-      modeLabel.textContent = 'api error';
+      modeLabel.textContent = 'api error ' + r.status;
       chatStatus.textContent = 'offline';
     }
   } catch (e) {
@@ -447,10 +462,18 @@ function setThinking(on) {
   charSlot.classList.toggle('think', on);
   miniSlot.classList.toggle('think', on);
 }
+function unlockSend() {
+  busy = false;
+  sendBtn.disabled = false;
+  setThinking(false);
+  hideTyping();
+}
+
 function openChat() {
   haptic('select');
   home.classList.add('hidden');
   chatView.classList.add('open');
+  unlockSend();
   if (!chatBooted) {
     chatBooted = true;
     if (history.length) {
@@ -464,9 +487,9 @@ function openChat() {
 }
 function closeChat() {
   haptic('select');
+  unlockSend();
   chatView.classList.remove('open');
   home.classList.remove('hidden');
-  setThinking(false);
 }
 document.getElementById('btn-chat').onclick = openChat;
 document.getElementById('btn-back').onclick = closeChat;
@@ -492,6 +515,7 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 function showTyping() {
+  hideTyping();
   var div = document.createElement('div');
   div.className = 'msg bot';
   div.id = 'typing';
@@ -505,9 +529,23 @@ function hideTyping() {
   if (t) t.remove();
 }
 
+function fetchWithTimeout(url, options, ms) {
+  var ctrl = new AbortController();
+  var timer = setTimeout(function () { ctrl.abort(); }, ms);
+  var opts = options || {};
+  opts.signal = ctrl.signal;
+  return fetch(url, opts).then(function (res) {
+    clearTimeout(timer);
+    return res;
+  }).catch(function (err) {
+    clearTimeout(timer);
+    throw err;
+  });
+}
+
 async function getReply(userText) {
   try {
-    var res = await fetch(AI_API_URL, {
+    var res = await fetchWithTimeout(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -516,16 +554,23 @@ async function getReply(userText) {
           return { role: m.role, text: m.text };
         })
       })
-    });
-    var data = await res.json();
+    }, FETCH_MS);
+
+    var raw = await res.text();
+    var data = null;
+    try { data = JSON.parse(raw); } catch (e) {
+      return 'Ответ не JSON (HTTP ' + res.status + '): ' + raw.slice(0, 120);
+    }
     if (data && data.reply) return String(data.reply);
-    return 'Пустой ответ от ИИ. Проверь Worker и binding AI.';
+    return 'Пустой reply. HTTP ' + res.status + '. Проверь Worker / binding AI.';
   } catch (e) {
+    if (e && e.name === 'AbortError') {
+      return 'Таймаут ' + (FETCH_MS / 1000) + 'с. Worker не ответил — модель или лимиты Cloudflare.';
+    }
     return 'Нет связи с ИИ: ' + (e.message || String(e));
   }
 }
 
-var busy = false;
 async function send(text) {
   text = (text || input.value).trim();
   if (!text || busy) return;
@@ -534,19 +579,28 @@ async function send(text) {
   input.value = '';
   autoSize();
   haptic('select');
-  addMsg('user', text);
+  addMsg('user', text, true);
   setThinking(true);
   showTyping();
-  var reply = await getReply(text);
+
+  var reply;
+  try {
+    reply = await getReply(text);
+  } catch (e) {
+    reply = 'Сбой: ' + (e.message || String(e));
+  }
+
   hideTyping();
   setThinking(false);
-  addMsg('bot', reply);
-  if (/Workers AI error|Нет связи|binding|Пустой ответ/i.test(reply)) haptic('error');
+  addMsg('bot', reply, true);
+
+  if (/Workers AI error|Нет связи|binding|Таймаут|Пустой|Сбой/i.test(reply)) haptic('error');
   else haptic('success');
-  busy = false;
-  sendBtn.disabled = false;
-  input.focus();
+
+  unlockSend();
+  try { input.focus(); } catch (e) {}
 }
+
 function autoSize() {
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, 110) + 'px';
