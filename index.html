@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>PXAX · Ai</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -24,11 +25,11 @@ body::before{
     linear-gradient(180deg,rgba(12,10,24,.2) 0%,transparent 30%,rgba(0,0,0,.35) 100%);
 }
 #fx,#net{position:fixed;inset:0;z-index:0;pointer-events:none}
-#fx{opacity:.5}#net{opacity:.35}
+#fx{opacity:.45}#net{opacity:.3}
 .parallax-layer{
   position:fixed;inset:-8%;z-index:0;pointer-events:none;
   background:radial-gradient(ellipse 60% 40% at 50% 30%,rgba(155,123,255,.12),transparent 60%);
-  transition:transform .15s ease-out;will-change:transform;
+  will-change:transform;
 }
 .noise{
   position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;
@@ -41,14 +42,8 @@ body::before{
   padding:24px 20px calc(24px + env(safe-area-inset-bottom));text-align:center;
 }
 #home.hidden{display:none}
-.char-stage{
-  perspective:600px;margin-bottom:22px;
-  width:180px;height:180px;display:flex;align-items:center;justify-content:center;
-}
-.char-slot{
-  position:relative;width:168px;height:168px;
-  transform-style:preserve-3d;transition:transform .12s ease-out;will-change:transform;
-}
+.char-stage{perspective:600px;margin-bottom:22px;width:180px;height:180px;display:flex;align-items:center;justify-content:center}
+.char-slot{position:relative;width:168px;height:168px;transform-style:preserve-3d;will-change:transform}
 .char-slot .halo{
   position:absolute;inset:-28px;border-radius:50%;
   background:radial-gradient(circle,rgba(155,123,255,.42),rgba(92,225,230,.08) 45%,transparent 70%);
@@ -73,7 +68,7 @@ body::before{
   position:relative;width:168px;height:168px;border-radius:50%;
   border:1px solid rgba(200,180,255,.35);
   background:radial-gradient(circle at 40% 28%,rgba(180,160,255,.45),rgba(40,30,80,.88) 52%,rgba(16,12,32,.98));
-  box-shadow:0 0 40px rgba(155,123,255,.22),inset 0 -8px 24px rgba(0,0,0,.35),inset 0 8px 20px rgba(255,255,255,.06);
+  box-shadow:0 0 40px rgba(155,123,255,.22),inset 0 -8px 24px rgba(0,0,0,.35);
   display:flex;align-items:center;justify-content:center;overflow:hidden;transform-style:preserve-3d;
 }
 .sil-wrap{position:relative;width:72px;height:100px;transform-style:preserve-3d}
@@ -122,9 +117,7 @@ body::before{
   animation:title-blink 1.6s steps(1) infinite;
 }
 @keyframes title-blink{
-  0%,42%{opacity:1;filter:none}43%{opacity:.25;filter:hue-rotate(40deg)}
-  44%,86%{opacity:1;filter:none}87%{opacity:.4;transform:translateX(1px)}
-  88%,100%{opacity:1;transform:none}
+  0%,42%{opacity:1}43%{opacity:.25}44%,86%{opacity:1}87%{opacity:.4}88%,100%{opacity:1}
 }
 .btn-apps .glitch-sub{font-size:10px;letter-spacing:2px;color:rgba(0,255,255,.55);font-weight:500;text-transform:lowercase}
 .home-hint{margin-top:18px;font-size:11px;color:var(--mute);line-height:1.45;max-width:290px}
@@ -133,8 +126,7 @@ body::before{
   display:none;flex-direction:column;height:100%;padding:0 12px;
   padding-top:max(8px,env(safe-area-inset-top));
 }
-#chat-view.open{display:flex;animation:fadein .28s ease}
-@keyframes fadein{from{opacity:0}to{opacity:1}}
+#chat-view.open{display:flex}
 .chat-top{display:flex;align-items:center;gap:10px;padding:8px 0 12px;flex-shrink:0}
 .back{
   width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
@@ -145,7 +137,6 @@ body::before{
   width:42px;height:42px;border-radius:50%;flex-shrink:0;
   border:1px solid rgba(155,123,255,.4);
   background:radial-gradient(circle at 40% 30%,rgba(155,123,255,.4),rgba(30,20,60,.95));
-  box-shadow:0 0 12px rgba(155,123,255,.2);
   display:flex;align-items:center;justify-content:center;overflow:hidden;
 }
 .mini-slot.think{border-color:rgba(92,225,230,.55);animation:mini-pulse 1.2s ease-out infinite}
@@ -162,17 +153,15 @@ body::before{
 .chat-top .info strong{display:block;font-size:14px;color:#efeaff}
 .chat-top .info span{font-size:11px;color:var(--b)}
 .chat{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 0 12px;display:flex;flex-direction:column;gap:12px}
-.msg{max-width:88%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.45}
+.msg{max-width:88%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.45;word-break:break-word}
 .msg.bot{
   align-self:flex-start;background:var(--panel);border:1px solid var(--line);
-  border-bottom-left-radius:6px;backdrop-filter:blur(12px);animation:reveal .45s ease forwards;
+  border-bottom-left-radius:6px;backdrop-filter:blur(12px);
 }
-@keyframes reveal{from{opacity:0;filter:blur(6px);transform:translateY(6px)}to{opacity:1;filter:blur(0);transform:none}}
 .msg.user{
   align-self:flex-end;background:linear-gradient(135deg,rgba(155,123,255,.35),rgba(92,225,230,.12));
-  border:1px solid rgba(155,123,255,.28);border-bottom-right-radius:6px;color:#f0ecff;animation:in .25s ease;
+  border:1px solid rgba(155,123,255,.28);border-bottom-right-radius:6px;color:#f0ecff;
 }
-@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .msg .meta{font-size:10px;color:var(--mute);margin-bottom:4px}
 .typing{display:flex;gap:4px;padding:4px 0}
 .typing span{width:6px;height:6px;border-radius:50%;background:var(--a);animation:ty 1.2s ease-in-out infinite}
@@ -193,11 +182,7 @@ body::before{
   font-family:inherit;font-size:15px;background:rgba(20,18,36,.95);border:1px solid var(--line);
   color:var(--text);outline:none;line-height:1.35;
 }
-.composer textarea:focus{border-color:rgba(155,123,255,.5);animation:input-wave 1.8s ease-in-out infinite}
-@keyframes input-wave{
-  0%,100%{box-shadow:0 0 0 1px rgba(155,123,255,.2),0 0 20px rgba(155,123,255,.1)}
-  50%{box-shadow:0 0 0 1px rgba(92,225,230,.35),0 0 28px rgba(92,225,230,.12)}
-}
+.composer textarea:focus{border-color:rgba(155,123,255,.5)}
 .composer textarea::placeholder{color:var(--mute)}
 .send{
   width:44px;height:44px;border-radius:14px;border:none;cursor:pointer;flex-shrink:0;
@@ -261,362 +246,374 @@ body::before{
   </section>
 </div>
 <script>
-const AI_API_URL = 'https://pxaxai.xstayis.workers.dev';
-const APPS_LINK = 'https://t.me/pxaxbetpay_bot';
-const BOT_NAME = 'Ai';
-const FETCH_MS = 25000;
+(function () {
+  var AI_API_URL = 'https://pxaxai.xstayis.workers.dev';
+  var APPS_LINK = 'https://t.me/pxaxbetpay_bot';
+  var BOT_NAME = 'Ai';
+  var TIMEOUT = 28000;
 
-/* storage: localStorage → memory (TG иногда блокирует LS) */
-var memStore = {};
-var storage = {
-  getItem: function (k) {
+  var mem = {};
+  var storage = {
+    getItem: function (k) {
+      try { if (window.localStorage) { var v = localStorage.getItem(k); if (v != null) return v; } } catch (e) {}
+      return mem[k] != null ? mem[k] : null;
+    },
+    setItem: function (k, v) {
+      mem[k] = v;
+      try { if (window.localStorage) localStorage.setItem(k, v); } catch (e) {}
+    }
+  };
+
+  var tgUser = null;
+  if (window.Telegram && Telegram.WebApp) {
     try {
-      if (window.localStorage) {
-        var v = localStorage.getItem(k);
-        if (v != null) return v;
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+      Telegram.WebApp.setHeaderColor('#07060f');
+    } catch (e) {}
+    tgUser = Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user || null;
+  }
+
+  /* title blink */
+  (function () {
+    var el = document.getElementById('apps-title');
+    var a = true;
+    setInterval(function () {
+      a = !a;
+      el.textContent = a ? 'PXAXBET' : 'PXAXBYTE';
+    }, 1600);
+  })();
+
+  function openApps() {
+    try {
+      if (Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+        Telegram.WebApp.HapticFeedback.selectionChanged();
       }
     } catch (e) {}
-    return memStore[k] != null ? memStore[k] : null;
-  },
-  setItem: function (k, v) {
-    memStore[k] = v;
     try {
-      if (window.localStorage) localStorage.setItem(k, v);
+      if (Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
+        Telegram.WebApp.openTelegramLink(APPS_LINK);
+        return;
+      }
     } catch (e) {}
+    window.location.href = APPS_LINK;
   }
-};
+  document.getElementById('btn-apps').onclick = openApps;
 
-var tgUser = null;
-if (window.Telegram && Telegram.WebApp) {
-  Telegram.WebApp.ready();
-  Telegram.WebApp.expand();
-  try { Telegram.WebApp.setHeaderColor('#07060f'); } catch (e) {}
-  tgUser = Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user || null;
-}
-
-(function () {
-  var el = document.getElementById('apps-title');
-  var a = true;
-  setInterval(function () {
-    a = !a;
-    el.textContent = a ? 'PXAXBET' : 'PXAXBYTE';
-  }, 1600);
-})();
-
-function openApps() {
-  try {
-    if (Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-      Telegram.WebApp.HapticFeedback.selectionChanged();
-    }
-  } catch (e) {}
-  var url = APPS_LINK;
-  try {
-    if (Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
-      Telegram.WebApp.openTelegramLink(url);
-      return;
-    }
-  } catch (e1) {}
-  window.location.href = url;
-}
-document.getElementById('btn-apps').addEventListener('click', openApps);
-
-var parallax = document.getElementById('parallax');
-var charSlot = document.getElementById('char-slot');
-var tiltX = 0, tiltY = 0, targetTX = 0, targetTY = 0;
-function onPointer(clientX, clientY) {
-  var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-  var dx = (clientX - cx) / cx, dy = (clientY - cy) / cy;
-  targetTX = dy * -10; targetTY = dx * 12;
-  parallax.style.transform = 'translate(' + (dx * 12) + 'px,' + (dy * 10) + 'px)';
-}
-function resetTilt() { targetTX = 0; targetTY = 0; parallax.style.transform = 'translate(0,0)'; }
-window.addEventListener('pointermove', function (e) { onPointer(e.clientX, e.clientY); }, { passive: true });
-window.addEventListener('pointerleave', resetTilt);
-window.addEventListener('touchmove', function (e) {
-  if (e.touches[0]) onPointer(e.touches[0].clientX, e.touches[0].clientY);
-}, { passive: true });
-window.addEventListener('touchend', resetTilt);
-(function tiltLoop() {
-  tiltX += (targetTX - tiltX) * 0.08;
-  tiltY += (targetTY - tiltY) * 0.08;
-  charSlot.style.transform = 'rotateX(' + tiltX + 'deg) rotateY(' + tiltY + 'deg)';
-  requestAnimationFrame(tiltLoop);
-})();
-
-(function neural() {
-  var c = document.getElementById('net'); var ctx = c.getContext('2d');
-  var w, h, nodes = [];
-  function resize() {
-    w = c.width = window.innerWidth; h = c.height = window.innerHeight;
-    var n = Math.min(28, Math.floor((w * h) / 28000));
-    nodes = [];
-    for (var i = 0; i < n; i++) {
-      nodes.push({
-        x: Math.random() * w, y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35
-      });
-    }
+  /* light parallax */
+  var parallax = document.getElementById('parallax');
+  var charSlot = document.getElementById('char-slot');
+  var tiltX = 0, tiltY = 0, targetTX = 0, targetTY = 0;
+  function onPointer(x, y) {
+    var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    var dx = (x - cx) / cx, dy = (y - cy) / cy;
+    targetTX = dy * -8; targetTY = dx * 10;
+    parallax.style.transform = 'translate(' + (dx * 10) + 'px,' + (dy * 8) + 'px)';
   }
-  function tick() {
-    ctx.clearRect(0, 0, w, h);
-    var i, j, p, a, b, dx, dy, d;
-    for (i = 0; i < nodes.length; i++) {
-      p = nodes[i]; p.x += p.vx; p.y += p.vy;
-      if (p.x < 0 || p.x > w) p.vx *= -1;
-      if (p.y < 0 || p.y > h) p.vy *= -1;
+  window.addEventListener('pointermove', function (e) { onPointer(e.clientX, e.clientY); }, { passive: true });
+  window.addEventListener('touchmove', function (e) {
+    if (e.touches[0]) onPointer(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  (function loop() {
+    tiltX += (targetTX - tiltX) * 0.08;
+    tiltY += (targetTY - tiltY) * 0.08;
+    charSlot.style.transform = 'rotateX(' + tiltX + 'deg) rotateY(' + tiltY + 'deg)';
+    requestAnimationFrame(loop);
+  })();
+
+  /* soft neural + particles (lightweight) */
+  (function () {
+    var c = document.getElementById('net');
+    var ctx = c.getContext('2d');
+    var w, h, nodes = [];
+    function resize() {
+      w = c.width = window.innerWidth;
+      h = c.height = window.innerHeight;
+      var n = Math.min(22, Math.floor((w * h) / 32000));
+      nodes = [];
+      for (var i = 0; i < n; i++) {
+        nodes.push({
+          x: Math.random() * w, y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3
+        });
+      }
     }
-    for (i = 0; i < nodes.length; i++) {
-      for (j = i + 1; j < nodes.length; j++) {
-        a = nodes[i]; b = nodes[j];
-        dx = a.x - b.x; dy = a.y - b.y; d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 140) {
-          ctx.strokeStyle = 'rgba(155,123,255,' + (0.12 * (1 - d / 140)) + ')';
-          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    function tick() {
+      ctx.clearRect(0, 0, w, h);
+      var i, j, p, a, b, dx, dy, d;
+      for (i = 0; i < nodes.length; i++) {
+        p = nodes[i]; p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > h) p.vy *= -1;
+      }
+      for (i = 0; i < nodes.length; i++) {
+        for (j = i + 1; j < nodes.length; j++) {
+          a = nodes[i]; b = nodes[j];
+          dx = a.x - b.x; dy = a.y - b.y; d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 130) {
+            ctx.strokeStyle = 'rgba(155,123,255,' + (0.1 * (1 - d / 130)) + ')';
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          }
         }
       }
+      for (i = 0; i < nodes.length; i++) {
+        p = nodes[i];
+        ctx.beginPath(); ctx.arc(p.x, p.y, 1.3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(92,225,230,.3)'; ctx.fill();
+      }
+      requestAnimationFrame(tick);
     }
-    for (i = 0; i < nodes.length; i++) {
-      p = nodes[i];
-      ctx.beginPath(); ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(92,225,230,.35)'; ctx.fill();
-    }
-    requestAnimationFrame(tick);
-  }
-  resize(); window.addEventListener('resize', resize); tick();
-})();
+    resize(); window.addEventListener('resize', resize); tick();
+  })();
 
-(function particles() {
-  var c = document.getElementById('fx'); var ctx = c.getContext('2d');
-  var w, h, dots = [];
-  function resize() {
-    w = c.width = window.innerWidth; h = c.height = window.innerHeight;
-    dots = [];
-    for (var i = 0; i < 28; i++) {
-      dots.push({
-        x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.5 + 0.3,
-        vx: (Math.random() - 0.5) * 0.2, vy: -0.1 - Math.random() * 0.2, a: Math.random() * 0.35 + 0.08
-      });
+  (function () {
+    var c = document.getElementById('fx');
+    var ctx = c.getContext('2d');
+    var w, h, dots = [];
+    function resize() {
+      w = c.width = window.innerWidth;
+      h = c.height = window.innerHeight;
+      dots = [];
+      for (var i = 0; i < 24; i++) {
+        dots.push({
+          x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.4 + 0.3,
+          vx: (Math.random() - 0.5) * 0.2, vy: -0.1 - Math.random() * 0.2, a: Math.random() * 0.3 + 0.08
+        });
+      }
     }
-  }
-  function tick() {
-    ctx.clearRect(0, 0, w, h);
-    for (var i = 0; i < dots.length; i++) {
-      var p = dots[i];
-      p.x += p.vx; p.y += p.vy;
-      if (p.y < -5) { p.y = h + 4; p.x = Math.random() * w; }
-      if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(155,123,255,' + p.a + ')'; ctx.fill();
+    function tick() {
+      ctx.clearRect(0, 0, w, h);
+      for (var i = 0; i < dots.length; i++) {
+        var p = dots[i];
+        p.x += p.vx; p.y += p.vy;
+        if (p.y < -5) { p.y = h + 4; p.x = Math.random() * w; }
+        if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(155,123,255,' + p.a + ')'; ctx.fill();
+      }
+      requestAnimationFrame(tick);
     }
-    requestAnimationFrame(tick);
-  }
-  resize(); window.addEventListener('resize', resize); tick();
-})();
+    resize(); window.addEventListener('resize', resize); tick();
+  })();
 
-var home = document.getElementById('home');
-var chatView = document.getElementById('chat-view');
-var chatEl = document.getElementById('chat');
-var input = document.getElementById('input');
-var sendBtn = document.getElementById('send');
-var modeLabel = document.getElementById('mode-label');
-var chatStatus = document.getElementById('chat-status');
-var miniSlot = document.getElementById('mini-slot');
-var HISTORY_KEY = 'pxax_ai_history_v2';
-var history = [];
-try {
-  history = JSON.parse(storage.getItem(HISTORY_KEY) || '[]');
-  if (!Array.isArray(history)) history = [];
-} catch (e) { history = []; }
-var chatBooted = false;
-var busy = false;
-
-(async function pingApi() {
+  var home = document.getElementById('home');
+  var chatView = document.getElementById('chat-view');
+  var chatEl = document.getElementById('chat');
+  var input = document.getElementById('input');
+  var sendBtn = document.getElementById('send');
+  var modeLabel = document.getElementById('mode-label');
+  var chatStatus = document.getElementById('chat-status');
+  var miniSlot = document.getElementById('mini-slot');
+  var HISTORY_KEY = 'pxax_ai_history_v3';
+  var history = [];
   try {
-    var ctrl = new AbortController();
-    var t = setTimeout(function () { ctrl.abort(); }, 8000);
-    var r = await fetch(AI_API_URL, { method: 'GET', signal: ctrl.signal });
-    clearTimeout(t);
-    if (r.ok) {
+    history = JSON.parse(storage.getItem(HISTORY_KEY) || '[]');
+    if (!Array.isArray(history)) history = [];
+  } catch (e) { history = []; }
+  var chatBooted = false;
+  var busy = false;
+
+  function xhrGet(url, ms, cb) {
+    var x = new XMLHttpRequest();
+    var done = false;
+    var t = setTimeout(function () {
+      if (done) return;
+      done = true;
+      try { x.abort(); } catch (e) {}
+      cb(false, 'timeout');
+    }, ms);
+    x.open('GET', url, true);
+    x.timeout = ms;
+    x.onload = function () {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
+      cb(x.status === 200, x.responseText || '');
+    };
+    x.onerror = function () {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
+      cb(false, 'error');
+    };
+    x.send();
+  }
+
+  function xhrPost(url, body, ms, cb) {
+    var x = new XMLHttpRequest();
+    var done = false;
+    var t = setTimeout(function () {
+      if (done) return;
+      done = true;
+      try { x.abort(); } catch (e) {}
+      cb({ ok: false, text: 'Таймаут ' + (ms / 1000) + 'с' });
+    }, ms);
+    x.open('POST', url, true);
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.timeout = ms;
+    x.onload = function () {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
+      var raw = x.responseText || '';
+      try {
+        var data = JSON.parse(raw);
+        if (data.reply) cb({ ok: true, text: String(data.reply) });
+        else cb({ ok: false, text: 'Нет reply. HTTP ' + x.status });
+      } catch (e) {
+        cb({ ok: false, text: 'Не JSON. HTTP ' + x.status + ' ' + raw.slice(0, 100) });
+      }
+    };
+    x.onerror = function () {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
+      cb({ ok: false, text: 'Сеть / XHR error' });
+    };
+    try {
+      x.send(JSON.stringify(body));
+    } catch (e) {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
+      cb({ ok: false, text: 'send: ' + e.message });
+    }
+  }
+
+  xhrGet(AI_API_URL, 10000, function (ok, text) {
+    if (ok) {
       modeLabel.textContent = 'online · workers ai';
       chatStatus.textContent = 'online · llama';
     } else {
-      modeLabel.textContent = 'api error ' + r.status;
+      modeLabel.textContent = 'offline';
       chatStatus.textContent = 'offline';
     }
-  } catch (e) {
-    modeLabel.textContent = 'offline';
-    chatStatus.textContent = 'offline';
-  }
-})();
-
-function haptic(t) {
-  try {
-    var h = Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback;
-    if (!h) return;
-    if (t === 'success') h.notificationOccurred('success');
-    else if (t === 'error') h.notificationOccurred('error');
-    else h.selectionChanged();
-  } catch (e) {}
-}
-function setThinking(on) {
-  charSlot.classList.toggle('think', on);
-  miniSlot.classList.toggle('think', on);
-}
-function unlockSend() {
-  busy = false;
-  sendBtn.disabled = false;
-  setThinking(false);
-  hideTyping();
-}
-
-function openChat() {
-  haptic('select');
-  home.classList.add('hidden');
-  chatView.classList.add('open');
-  unlockSend();
-  if (!chatBooted) {
-    chatBooted = true;
-    if (history.length) {
-      for (var i = 0; i < history.length; i++) addMsg(history[i].role, history[i].text, false);
-    } else {
-      var name = tgUser && tgUser.first_name;
-      addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Пиши что угодно — отвечу через нейросеть.', true);
-    }
-  }
-  setTimeout(function () { input.focus(); }, 300);
-}
-function closeChat() {
-  haptic('select');
-  unlockSend();
-  chatView.classList.remove('open');
-  home.classList.remove('hidden');
-}
-document.getElementById('btn-chat').onclick = openChat;
-document.getElementById('btn-back').onclick = closeChat;
-
-function addMsg(role, text, save) {
-  if (save === undefined) save = true;
-  var div = document.createElement('div');
-  div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
-  if (role === 'bot') {
-    div.innerHTML = '<div class="meta">' + BOT_NAME + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
-  } else {
-    div.textContent = text;
-  }
-  chatEl.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
-  if (save) {
-    history.push({ role: role, text: text, t: Date.now() });
-    if (history.length > 80) history = history.slice(-80);
-    storage.setItem(HISTORY_KEY, JSON.stringify(history));
-  }
-}
-function escapeHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-function showTyping() {
-  hideTyping();
-  var div = document.createElement('div');
-  div.className = 'msg bot';
-  div.id = 'typing';
-  div.style.animation = 'none';
-  div.innerHTML = '<div class="meta">' + BOT_NAME + '</div><div class="typing"><span></span><span></span><span></span></div>';
-  chatEl.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
-}
-function hideTyping() {
-  var t = document.getElementById('typing');
-  if (t) t.remove();
-}
-
-function fetchWithTimeout(url, options, ms) {
-  var ctrl = new AbortController();
-  var timer = setTimeout(function () { ctrl.abort(); }, ms);
-  var opts = options || {};
-  opts.signal = ctrl.signal;
-  return fetch(url, opts).then(function (res) {
-    clearTimeout(timer);
-    return res;
-  }).catch(function (err) {
-    clearTimeout(timer);
-    throw err;
   });
-}
 
-async function getReply(userText) {
-  try {
-    var res = await fetchWithTimeout(AI_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: userText,
-        history: history.slice(-8).map(function (m) {
-          return { role: m.role, text: m.text };
-        })
+  function haptic(t) {
+    try {
+      var h = Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback;
+      if (!h) return;
+      if (t === 'success') h.notificationOccurred('success');
+      else if (t === 'error') h.notificationOccurred('error');
+      else h.selectionChanged();
+    } catch (e) {}
+  }
+  function setThinking(on) {
+    charSlot.classList.toggle('think', on);
+    miniSlot.classList.toggle('think', on);
+  }
+  function unlock() {
+    busy = false;
+    sendBtn.disabled = false;
+    setThinking(false);
+    hideTyping();
+  }
+
+  function openChat() {
+    haptic('select');
+    home.classList.add('hidden');
+    chatView.classList.add('open');
+    unlock();
+    if (!chatBooted) {
+      chatBooted = true;
+      if (history.length) {
+        for (var i = 0; i < history.length; i++) addMsg(history[i].role, history[i].text, false);
+      } else {
+        var name = tgUser && tgUser.first_name;
+        addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Пиши что угодно — отвечу через нейросеть.', true);
+      }
+    }
+    setTimeout(function () { try { input.focus(); } catch (e) {} }, 250);
+  }
+  function closeChat() {
+    haptic('select');
+    unlock();
+    chatView.classList.remove('open');
+    home.classList.remove('hidden');
+  }
+  document.getElementById('btn-chat').onclick = openChat;
+  document.getElementById('btn-back').onclick = closeChat;
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function addMsg(role, text, save) {
+    if (save === undefined) save = true;
+    var div = document.createElement('div');
+    div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
+    if (role === 'bot') {
+      div.innerHTML = '<div class="meta">' + BOT_NAME + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
+    } else {
+      div.textContent = text;
+    }
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    if (save) {
+      history.push({ role: role, text: text, t: Date.now() });
+      if (history.length > 80) history = history.slice(-80);
+      storage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+  }
+  function showTyping() {
+    hideTyping();
+    var div = document.createElement('div');
+    div.className = 'msg bot';
+    div.id = 'typing';
+    div.innerHTML = '<div class="meta">' + BOT_NAME + '</div><div class="typing"><span></span><span></span><span></span></div>';
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+  function hideTyping() {
+    var t = document.getElementById('typing');
+    if (t) t.remove();
+  }
+
+  function send(text) {
+    text = (text || input.value || '').trim();
+    if (!text || busy) return;
+    busy = true;
+    sendBtn.disabled = true;
+    input.value = '';
+    autoSize();
+    haptic('select');
+    addMsg('user', text, true);
+    setThinking(true);
+    showTyping();
+
+    xhrPost(AI_API_URL, {
+      message: text,
+      history: history.slice(-8).map(function (m) {
+        return { role: m.role, text: m.text };
       })
-    }, FETCH_MS);
+    }, TIMEOUT, function (res) {
+      hideTyping();
+      setThinking(false);
+      addMsg('bot', res.text, true);
+      if (res.ok) haptic('success');
+      else haptic('error');
+      unlock();
+      try { input.focus(); } catch (e) {}
+    });
+  }
 
-    var raw = await res.text();
-    var data = null;
-    try { data = JSON.parse(raw); } catch (e) {
-      return 'Ответ не JSON (HTTP ' + res.status + '): ' + raw.slice(0, 120);
+  function autoSize() {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 110) + 'px';
+  }
+  sendBtn.onclick = function () { send(); };
+  input.oninput = autoSize;
+  input.onkeydown = function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
     }
-    if (data && data.reply) return String(data.reply);
-    return 'Пустой reply. HTTP ' + res.status + '. Проверь Worker / binding AI.';
-  } catch (e) {
-    if (e && e.name === 'AbortError') {
-      return 'Таймаут ' + (FETCH_MS / 1000) + 'с. Worker не ответил — модель или лимиты Cloudflare.';
-    }
-    return 'Нет связи с ИИ: ' + (e.message || String(e));
-  }
-}
-
-async function send(text) {
-  text = (text || input.value).trim();
-  if (!text || busy) return;
-  busy = true;
-  sendBtn.disabled = true;
-  input.value = '';
-  autoSize();
-  haptic('select');
-  addMsg('user', text, true);
-  setThinking(true);
-  showTyping();
-
-  var reply;
-  try {
-    reply = await getReply(text);
-  } catch (e) {
-    reply = 'Сбой: ' + (e.message || String(e));
-  }
-
-  hideTyping();
-  setThinking(false);
-  addMsg('bot', reply, true);
-
-  if (/Workers AI error|Нет связи|binding|Таймаут|Пустой|Сбой/i.test(reply)) haptic('error');
-  else haptic('success');
-
-  unlockSend();
-  try { input.focus(); } catch (e) {}
-}
-
-function autoSize() {
-  input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 110) + 'px';
-}
-sendBtn.onclick = function () { send(); };
-input.oninput = autoSize;
-input.onkeydown = function (e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
-};
-document.getElementById('suggest').onclick = function (e) {
-  var b = e.target.closest('[data-q]');
-  if (b) send(b.getAttribute('data-q'));
-};
+  };
+  document.getElementById('suggest').onclick = function (e) {
+    var b = e.target.closest('[data-q]');
+    if (b) send(b.getAttribute('data-q'));
+  };
+})();
 </script>
 </body>
 </html>
