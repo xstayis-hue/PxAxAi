@@ -262,7 +262,6 @@ body::before{
 </div>
 <script>
 const AI_API_URL = 'https://pxaxai.xstayis.workers.dev';
-/* только t.me — открывается внутри Telegram */
 const APPS_LINK = 'https://t.me/pxaxbetpay_bot';
 const BOT_NAME = 'Ai';
 
@@ -296,24 +295,19 @@ function openApps() {
       Telegram.WebApp.HapticFeedback.selectionChanged();
     }
   } catch (e) {}
-
   var url = APPS_LINK;
-
-  /* внутри TG — без браузера и без показа github */
   try {
     if (Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
       Telegram.WebApp.openTelegramLink(url);
       return;
     }
   } catch (e1) {}
-
   try {
     if (Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
       Telegram.WebApp.openLink(url);
       return;
     }
   } catch (e2) {}
-
   window.location.href = url;
 }
 document.getElementById('btn-apps').addEventListener('click', openApps);
@@ -427,9 +421,17 @@ var chatBooted = false;
 (async function pingApi() {
   try {
     var r = await fetch(AI_API_URL, { method: 'GET' });
-    if (r.ok) { modeLabel.textContent = 'online · workers ai'; chatStatus.textContent = 'online · llama'; }
-    else { modeLabel.textContent = 'api error'; chatStatus.textContent = 'offline'; }
-  } catch (e) { modeLabel.textContent = 'offline'; chatStatus.textContent = 'offline'; }
+    if (r.ok) {
+      modeLabel.textContent = 'online · workers ai';
+      chatStatus.textContent = 'online · llama';
+    } else {
+      modeLabel.textContent = 'api error';
+      chatStatus.textContent = 'offline';
+    }
+  } catch (e) {
+    modeLabel.textContent = 'offline';
+    chatStatus.textContent = 'offline';
+  }
 })();
 
 function haptic(t) {
@@ -447,11 +449,13 @@ function setThinking(on) {
 }
 function openChat() {
   haptic('select');
-  home.classList.add('hidden'); chatView.classList.add('open');
+  home.classList.add('hidden');
+  chatView.classList.add('open');
   if (!chatBooted) {
     chatBooted = true;
-    if (history.length) for (var i = 0; i < history.length; i++) addMsg(history[i].role, history[i].text, false);
-    else {
+    if (history.length) {
+      for (var i = 0; i < history.length; i++) addMsg(history[i].role, history[i].text, false);
+    } else {
       var name = tgUser && tgUser.first_name;
       addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Пиши что угодно — отвечу через нейросеть.', true);
     }
@@ -460,7 +464,9 @@ function openChat() {
 }
 function closeChat() {
   haptic('select');
-  chatView.classList.remove('open'); home.classList.remove('hidden'); setThinking(false);
+  chatView.classList.remove('open');
+  home.classList.remove('hidden');
+  setThinking(false);
 }
 document.getElementById('btn-chat').onclick = openChat;
 document.getElementById('btn-back').onclick = closeChat;
@@ -471,7 +477,9 @@ function addMsg(role, text, save) {
   div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
   if (role === 'bot') {
     div.innerHTML = '<div class="meta">' + BOT_NAME + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
-  } else div.textContent = text;
+  } else {
+    div.textContent = text;
+  }
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
   if (save) {
@@ -485,15 +493,17 @@ function escapeHtml(s) {
 }
 function showTyping() {
   var div = document.createElement('div');
-  div.className = 'msg bot'; div.id = 'typing'; div.style.animation = 'none';
+  div.className = 'msg bot';
+  div.id = 'typing';
+  div.style.animation = 'none';
   div.innerHTML = '<div class="meta">' + BOT_NAME + '</div><div class="typing"><span></span><span></span><span></span></div>';
-  chatEl.appendChild(div); chatEl.scrollTop = chatEl.scrollHeight;
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
 }
 function hideTyping() {
   var t = document.getElementById('typing');
   if (t) t.remove();
 }
-function localReply(q) { return 'Сейчас нет связи с Workers AI.\n«' + q.slice(0, 100) + '»'; }
 
 async function getReply(userText) {
   try {
@@ -502,25 +512,40 @@ async function getReply(userText) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: userText,
-        history: history.slice(-8).map(function (m) { return { role: m.role, text: m.text }; })
+        history: history.slice(-8).map(function (m) {
+          return { role: m.role, text: m.text };
+        })
       })
     });
     var data = await res.json();
-    if (data.reply) return String(data.reply);
-    return localReply(userText);
-  } catch (e) { return localReply(userText) + '\n(' + e.message + ')'; }
+    if (data && data.reply) return String(data.reply);
+    return 'Пустой ответ от ИИ. Проверь Worker и binding AI.';
+  } catch (e) {
+    return 'Нет связи с ИИ: ' + (e.message || String(e));
+  }
 }
 
 var busy = false;
 async function send(text) {
   text = (text || input.value).trim();
   if (!text || busy) return;
-  busy = true; sendBtn.disabled = true; input.value = ''; autoSize();
-  haptic('select'); addMsg('user', text); setThinking(true); showTyping();
+  busy = true;
+  sendBtn.disabled = true;
+  input.value = '';
+  autoSize();
+  haptic('select');
+  addMsg('user', text);
+  setThinking(true);
+  showTyping();
   var reply = await getReply(text);
-  hideTyping(); setThinking(false); addMsg('bot', reply);
-  if (/Workers AI error|нет связи|offline/i.test(reply)) haptic('error'); else haptic('success');
-  busy = false; sendBtn.disabled = false; input.focus();
+  hideTyping();
+  setThinking(false);
+  addMsg('bot', reply);
+  if (/Workers AI error|Нет связи|binding|Пустой ответ/i.test(reply)) haptic('error');
+  else haptic('success');
+  busy = false;
+  sendBtn.disabled = false;
+  input.focus();
 }
 function autoSize() {
   input.style.height = 'auto';
@@ -529,7 +554,10 @@ function autoSize() {
 sendBtn.onclick = function () { send(); };
 input.oninput = autoSize;
 input.onkeydown = function (e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
 };
 document.getElementById('suggest').onclick = function (e) {
   var b = e.target.closest('[data-q]');
