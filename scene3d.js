@@ -16,6 +16,8 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   powerPreference: 'low-power'
 });
+// тени выключены сознательно: renderer.shadowMap не включаем ради мобильного GPU,
+// поэтому castShadow/receiveShadow на мешах не ставим
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -58,8 +60,6 @@ function box(parent, name, color, position, size, options = {}) {
   );
   mesh.name = name;
   mesh.position.set(position[0], position[1], position[2]);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
   parent.add(mesh);
   return mesh;
 }
@@ -71,8 +71,6 @@ function cylinder(parent, name, color, position, radiusTop, radiusBottom, height
   );
   mesh.name = name;
   mesh.position.set(position[0], position[1], position[2]);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
   parent.add(mesh);
   return mesh;
 }
@@ -176,7 +174,6 @@ function createRoom() {
       });
   }
 
-  const doorFrame = box(world, 'door-frame', '#5b4a79', [1.65, 1.42, -2.67], [0.98, 2.9, 0.16]);
   const doorPivot = new THREE.Group();
   doorPivot.position.set(1.19, 0.04, -2.57);
   world.add(doorPivot);
@@ -190,7 +187,6 @@ function createRoom() {
     emissiveIntensity: 1.2
   });
   doorPivot.userData.closedRotation = doorPivot.rotation.y;
-  doorFrame.visible = false;
   box(world, 'door-frame-top', '#5b4a79', [1.65, 2.88, -2.67], [1.02, 0.12, 0.16]);
   box(world, 'door-frame-left', '#5b4a79', [1.15, 1.45, -2.67], [0.12, 2.85, 0.16]);
   box(world, 'door-frame-right', '#5b4a79', [2.15, 1.45, -2.67], [0.12, 2.85, 0.16]);
@@ -687,14 +683,22 @@ function updateTask(delta) {
 }
 
 function positionHotspots() {
+  // камера статична: пишем стили в DOM только при реальном изменении, а не каждый кадр
   for (const button of room.buttons) {
     const point = room.hotspots[button.dataset.roomAction].clone().project(camera);
     const x = THREE.MathUtils.clamp((point.x * 0.5 + 0.5) * host.clientWidth, 50, host.clientWidth - 50);
     const y = THREE.MathUtils.clamp((-point.y * 0.5 + 0.5) * host.clientHeight, 28, host.clientHeight - 30);
+    const hidden = mode !== 'room' || point.z < -1 || point.z > 1;
+    const disabled = !!task;
+    if (button._px === x && button._py === y && button._ph === hidden && button._pd === disabled) continue;
+    button._px = x;
+    button._py = y;
+    button._ph = hidden;
+    button._pd = disabled;
     button.style.left = `${x}px`;
     button.style.top = `${y}px`;
-    button.hidden = mode !== 'room' || point.z < -1 || point.z > 1;
-    button.disabled = !!task;
+    button.hidden = hidden;
+    button.disabled = disabled;
   }
 }
 
@@ -746,8 +750,7 @@ function emote(type) {
   actionLoop(actionName);
   clearTimeout(emote.timer);
   emote.timer = setTimeout(() => {
-    if (mode === 'room' && !task) actionLoop('Idle_Loop');
-    else if (mode === 'chat' && !task) actionLoop('Idle_Loop');
+    if (!task) actionLoop('Idle_Loop');
   }, type === 'talk' ? 4000 : 2200);
 }
 
@@ -788,7 +791,6 @@ async function initialize() {
   avatarRig.traverse((object) => {
     if (object.isSkinnedMesh) {
       object.frustumCulled = false;
-      object.castShadow = true;
     }
   });
   posePivot = new THREE.Group();

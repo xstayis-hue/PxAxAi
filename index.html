@@ -977,7 +977,8 @@ body::before{
 
   /* --- сообщения --- */
   function escapeHtml(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function saveHistory() {
     if (history.length > CFG.HISTORY_MAX) history = history.slice(-CFG.HISTORY_MAX);
