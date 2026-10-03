@@ -233,10 +233,10 @@ body::before{
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
       <div class="home-apps" aria-label="Другие приложения">
-        <button type="button" class="btn-apps" id="btn-apps" aria-label="Открыть приложение заявок">
+        <button type="button" class="btn-apps" id="btn-apps" aria-label="Открыть бота прогнозов">
           <span class="app-icon" aria-hidden="true">✦</span>
-          <span class="glitch-title" id="apps-title">PXAXBET</span>
-          <span class="glitch-sub">Заявки</span>
+          <span class="glitch-title">PXAXBET2016</span>
+          <span class="glitch-sub">Прогнозы</span>
         </button>
         <button type="button" class="btn-apps vpn" id="btn-vpn" aria-label="Открыть приложение VPN">
           <span class="app-icon" aria-hidden="true">⌁</span>
@@ -284,9 +284,9 @@ body::before{
 
   var CFG = {
     AI_API_URL: 'https://pxaxai.xstayis.workers.dev',
-    APPS_LINK: 'https://t.me/pxaxbetpay_bot',
-    VPN_LINK: 'https://xstayis-hue.github.io/Vph/',
-    COIN_LINK: 'https://xstayis-hue.github.io/PHXcoin/',
+    PREDICTIONS_LINK: 'https://t.me/pxaxbetai_bot',
+    VPN_LINK: 'https://t.me/Vphoenixx_bot',
+    COIN_LINK: 'https://t.me/PHXcryptocoin_bot',
     BOT_NAME: 'pxaxgent',
     TIMEOUT: 28000,
     HISTORY_KEY: 'pxax_ai_history_v3',
@@ -380,11 +380,6 @@ body::before{
     } catch (e) {}
   }
 
-  /* --- glitch-заголовок --- */
-  (function () {
-    var el = $('apps-title'), a = true;
-    setInterval(function () { a = !a; el.textContent = a ? 'PXAXBET' : 'PXAXBYTE'; }, 1600);
-  })();
   function openApp(url, telegramLink) {
     haptic('select');
     try {
@@ -393,9 +388,9 @@ body::before{
     } catch (e) {}
     window.open(url, '_blank', 'noopener');
   }
-  $('btn-apps').onclick = function () { openApp(CFG.APPS_LINK, true); };
-  $('btn-vpn').onclick = function () { openApp(CFG.VPN_LINK, false); };
-  $('btn-coin').onclick = function () { openApp(CFG.COIN_LINK, false); };
+  $('btn-apps').onclick = function () { openApp(CFG.PREDICTIONS_LINK, true); };
+  $('btn-vpn').onclick = function () { openApp(CFG.VPN_LINK, true); };
+  $('btn-coin').onclick = function () { openApp(CFG.COIN_LINK, true); };
 
   /* --- фон: нейросеть --- */
   (function () {
