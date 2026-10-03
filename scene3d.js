@@ -244,6 +244,9 @@ let task = null;
 let taskPhase = '';
 let phaseTimer = 0;
 let phaseDuration = 0;
+let taskDurationSeconds = 0;
+let phaseDeadline = 0;
+let wakeRequested = false;
 let phaseStartPosition = null;
 let phaseStartRotation = 0;
 let targetPosition = null;
@@ -404,6 +407,21 @@ function reportError(error) {
   setRoomStatus('Ошибка загрузки 3D-сцены');
 }
 
+function scheduleWander() {
+  window.clearTimeout(autoTimer);
+  autoTimer = window.setTimeout(() => {
+    if (mode === 'room' && !task && !document.hidden && !window.pxaxNeeds?.isSleepOrBathroom()) {
+      const hour = new Date().getHours();
+      const tired = window.pxaxNeeds?.isTired();
+      const options = tired || hour >= 23 || hour < 7
+        ? ['bed', 'bed', 'desk']
+        : ['desk', 'desk', 'door', 'bed'];
+      makeTask(options[Math.floor(Math.random() * options.length)]);
+    }
+    scheduleWander();
+  }, 300000 + Math.random() * 300000);
+}
+
 function resize() {
   const width = Math.max(1, host.clientWidth);
   const height = Math.max(1, host.clientHeight);
@@ -475,14 +493,18 @@ function addRiggedPart(baseRoot, baseBones, gltf, tint, glow) {
   }
 }
 
-function makeTask(action) {
+function makeTask(action, options = {}) {
   if (task || mode !== 'room' || !characterRoot) return false;
   task = action;
   taskPhase = 'walk-to';
+  taskDurationSeconds = Math.max(0, Number(options.durationSeconds) || 0);
+  phaseDeadline = 0;
   const taskPositions = {
     bed: new THREE.Vector3(-0.5, 0, 1.55),
+    sleep: new THREE.Vector3(-0.5, 0, 1.55),
     desk: new THREE.Vector3(1.15, 0, 0.38),
-    door: new THREE.Vector3(1.5, 0, -1.55)
+    door: new THREE.Vector3(1.5, 0, -1.55),
+    toilet: new THREE.Vector3(1.5, 0, -1.55)
   };
   routeTargets = findPath(characterRoot.position, taskPositions[action]);
   if (!routeTargets) {
@@ -504,6 +526,9 @@ function finishTask() {
   task = null;
   taskPhase = '';
   targetPosition = null;
+  taskDurationSeconds = 0;
+  phaseDeadline = 0;
+  wakeRequested = false;
   if (posePivot) posePivot.rotation.x = 0;
   if (characterRoot) characterRoot.position.y = 0;
   room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation;
@@ -530,13 +555,14 @@ function walkHomeFromBed() {
 }
 
 function arriveAtTask() {
-  if (task === 'bed') {
+  if (task === 'bed' || task === 'sleep') {
     taskPhase = 'bed-enter';
     const action = actionLoop('Sitting_Enter', false);
     phaseDuration = Math.max(1.4, action ? animationDuration.Sitting_Enter || 1.4 : 1.4);
     phaseTimer = phaseDuration;
     phaseStartPosition = characterRoot.position.clone();
     phaseStartRotation = posePivot.rotation.x;
+    if (task === 'sleep') setRoomStatus('Идёт спать', true);
     return;
   }
   if (task === 'desk') {
@@ -546,12 +572,12 @@ function arriveAtTask() {
     setRoomStatus('Работает за ноутбуком', true);
     return;
   }
-  if (task === 'door') {
+  if (task === 'door' || task === 'toilet') {
     taskPhase = 'door-use';
     actionLoop('Interact');
     phaseTimer = 1.4;
     room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation - 1.1;
-    setRoomStatus('Ненадолго вышла за дверь', true);
+    setRoomStatus(task === 'toilet' ? 'Ушла в туалет' : 'Ненадолго вышла за дверь', true);
   }
 }
 
@@ -605,8 +631,9 @@ function updateTask(delta) {
       posePivot.rotation.x = -Math.PI / 2;
       taskPhase = 'bed-rest';
       actionLoop('Idle_Loop');
-      phaseTimer = 6;
-      setRoomStatus('Лежит на кровати', true);
+      phaseTimer = task === 'sleep' ? Math.max(0, taskDurationSeconds) : 6;
+      if (wakeRequested) phaseTimer = 0;
+      setRoomStatus(task === 'sleep' ? 'Спит' : 'Лежит на кровати', true);
     }
   } else if (taskPhase === 'bed-rest') {
     phaseTimer -= delta;
@@ -646,11 +673,11 @@ function updateTask(delta) {
     if (phaseTimer <= 0) {
       taskPhase = 'door-away';
       characterRoot.visible = false;
-      phaseTimer = 1.3;
+      if (task === 'toilet') phaseDeadline = Date.now() + taskDurationSeconds * 1000;
+      else phaseTimer = 1.3;
     }
   } else if (taskPhase === 'door-away') {
-    phaseTimer -= delta;
-    if (phaseTimer <= 0) {
+    if (task === 'toilet' ? Date.now() >= phaseDeadline : (phaseTimer -= delta) <= 0) {
       characterRoot.position.set(0, 0, 1.2);
       characterRoot.visible = true;
       room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation;
@@ -803,23 +830,22 @@ async function initialize() {
   rendererReady = true;
   setRoomStatus('Осматривает комнату');
   frameId = requestAnimationFrame(animate);
-  autoTimer = window.setInterval(() => {
-    if (mode !== 'room' || task || document.hidden) return;
-    const hour = new Date().getHours();
-    const options = hour >= 23 || hour < 7 ? ['bed', 'bed', 'desk'] : ['desk', 'bed', 'door'];
-    const action = options[Math.floor(Math.random() * options.length)];
-    makeTask(action);
-  }, 65000);
+  scheduleWander();
 }
 
 window.pxaxRoom3d = {
-  act(action) {
+  act(action, options = {}) {
     if (!rendererReady) {
       window.pxaxRoomToast?.('3D-комната ещё загружается…');
       return false;
     }
-    if (!['bed', 'desk', 'door'].includes(action)) return false;
-    return makeTask(action);
+    if (!['bed', 'sleep', 'desk', 'door', 'toilet'].includes(action)) return false;
+    return makeTask(action, options || {});
+  },
+  wake() {
+    if (task !== 'sleep') return;
+    if (taskPhase === 'bed-rest') phaseTimer = 0;
+    else wakeRequested = true;
   },
   setMode,
   emote,
