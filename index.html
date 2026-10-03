@@ -31,7 +31,7 @@ body::before{
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size:160px;
 }
-.wrap{position:relative;z-index:1;height:100vh;height:100dvh;display:flex;flex-direction:column}
+.wrap{position:relative;z-index:1;height:100vh;height:100dvh;display:flex;flex-direction:column;pointer-events:none}
 
 /* ===== LIVE2D CANVAS ===== */
 #stage{position:fixed;inset:0;z-index:1;pointer-events:none}
@@ -107,7 +107,7 @@ body::before{
 #l2d-tag.hide{display:none}
 
 /* ===== CHAT ===== */
-#chat-view{display:none;flex-direction:column;height:100%;padding:0 12px;padding-top:max(8px,env(safe-area-inset-top));position:relative;z-index:2}
+#chat-view{display:none;flex-direction:column;height:100%;padding:0 12px;padding-top:max(8px,env(safe-area-inset-top));position:relative;z-index:2;pointer-events:auto}
 #chat-view.open{display:flex}
 .chat-top{display:flex;align-items:center;gap:10px;padding:8px 0 12px;flex-shrink:0}
 .back{
@@ -475,6 +475,30 @@ body::before{
   var input = $('input'), sendBtn = $('send');
   var modeLabel = $('mode-label'), homeStatus = $('home-status'), chatStatus = $('chat-status');
   var miniDot = $('mini-dot');
+  var chatTouchStart = null;
+  function isChatControl(target) {
+    return target.closest && target.closest('.chat-top, .msg, .suggest, .composer');
+  }
+  /* The transparent chat area covers the canvas, so forward taps through it to Live2D. */
+  chatView.addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'touch' || isChatControl(e.target)) {
+      chatTouchStart = null;
+      return;
+    }
+    chatTouchStart = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  });
+  chatView.addEventListener('pointerup', function (e) {
+    var start = chatTouchStart;
+    chatTouchStart = null;
+    if (!start || e.pointerType !== 'touch' || e.pointerId !== start.id
+        || isChatControl(e.target) || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 12) return;
+    var interaction = l2d.app && l2d.app.renderer.plugins.interaction;
+    if (!l2d.model || !interaction) return;
+    var point = { x: 0, y: 0 };
+    interaction.mapPositionToPoint(point, e.clientX, e.clientY);
+    l2d.model.tap(point.x, point.y);
+  });
+  chatView.addEventListener('pointercancel', function () { chatTouchStart = null; });
   var history = [];
   try {
     history = JSON.parse(storage.getItem(CFG.HISTORY_KEY) || '[]');
