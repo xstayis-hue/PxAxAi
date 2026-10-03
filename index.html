@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>PXAX · Ai</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"}}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -26,16 +29,38 @@ body::before{
 }
 #net,#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
 #net{opacity:.3}#fx{opacity:.45}
+#room3d{
+  position:fixed;z-index:1;left:50%;top:0;bottom:calc(218px + env(safe-area-inset-bottom));
+  width:min(100vw,480px);transform:translateX(-50%);overflow:hidden;touch-action:pan-y;
+  transition:opacity .3s ease;
+}
+#room3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y}
+#room3d.chat-mode{opacity:.48;pointer-events:none}
+.room-hotspots{position:absolute;inset:0;pointer-events:none}
+.room-hotspot{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-height:34px;
+  padding:7px 10px;border:1px solid rgba(92,225,230,.45);border-radius:11px;
+  color:#e8fcff;background:rgba(5,10,22,.74);font:700 9px/1 system-ui,sans-serif;
+  letter-spacing:.65px;white-space:nowrap;box-shadow:0 0 16px rgba(92,225,230,.2);
+  backdrop-filter:blur(8px);pointer-events:auto;touch-action:manipulation;
+}
+.room-hotspot:active{transform:translate(-50%,-50%) scale(.96)}
+#scene-loading,#scene-error{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  padding:9px 12px;border-radius:10px;background:rgba(7,6,15,.78);color:#b9f7fa;
+  font-size:10px;letter-spacing:.5px;text-align:center;white-space:nowrap;
+}
+#scene-error{color:#ffb2b2;white-space:normal;max-width:90%}
+#scene-error[hidden],#scene-loading[hidden]{display:none}
 .noise{
   position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size:160px;
 }
-.wrap{position:relative;z-index:1;height:100vh;height:100dvh;display:flex;flex-direction:column;pointer-events:none}
+.wrap{position:relative;z-index:3;height:100vh;height:100dvh;display:flex;flex-direction:column;pointer-events:none}
 
-/* ===== LIVE2D CANVAS ===== */
-#stage{position:fixed;inset:0;z-index:1;pointer-events:none}
-#stage canvas{pointer-events:auto}
+/* ===== 3D REACTION OVERLAY ===== */
+#stage{position:fixed;inset:0;z-index:2;pointer-events:none}
 #stage::after{
   content:'';position:fixed;left:50%;top:58%;width:min(64vw,360px);aspect-ratio:1;
   border:1px solid rgba(92,225,230,.0);border-radius:50%;opacity:0;pointer-events:none;
@@ -73,7 +98,16 @@ body::before{
 .home-status.off .d{background:#ff6868;box-shadow:0 0 8px #ff6868}
 .home-status.off{color:#ff9c9c;border-color:rgba(255,104,104,.25)}
 @keyframes blink{50%{opacity:.35}}
+.room-meta{
+  position:absolute;top:calc(103px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:12px;
+  color:#d8d2f1;background:rgba(10,9,22,.62);border:1px solid rgba(140,120,255,.2);
+  backdrop-filter:blur(9px);font-size:10px;white-space:nowrap;z-index:3;
+}
+.room-meta strong{color:var(--b);font-variant-numeric:tabular-nums}
+.room-meta span:last-child{color:#a29ab9}
 .home-actions{width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px}
+.home-apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
 .btn-main{
   width:100%;padding:16px;border:none;border-radius:14px;font-family:inherit;
   font-size:15px;font-weight:650;cursor:pointer;color:#fff;
@@ -82,30 +116,29 @@ body::before{
 }
 .btn-main:active{transform:scale(.98);opacity:.92}
 .btn-apps{
-  width:100%;padding:12px 12px 10px;border-radius:14px;font-family:inherit;cursor:pointer;
-  background:rgba(0,0,0,.45);border:1px solid rgba(0,255,255,.22);backdrop-filter:blur(8px);
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  box-shadow:0 0 24px rgba(255,0,170,.12),inset 0 0 20px rgba(0,255,255,.04);
+  min-width:0;min-height:76px;padding:8px 4px 7px;border-radius:13px;font-family:inherit;cursor:pointer;
+  background:rgba(0,0,0,.52);border:1px solid rgba(0,255,255,.22);backdrop-filter:blur(8px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  box-shadow:0 0 18px rgba(255,0,170,.1),inset 0 0 18px rgba(0,255,255,.04);
   transition:transform .12s ease;
 }
 .btn-apps:active{transform:scale(.98);opacity:.92}
+.app-icon{font-size:17px;line-height:1;color:#71f2ed;text-shadow:0 0 12px currentColor}
+.btn-apps.vpn{border-color:rgba(92,225,230,.28);box-shadow:0 0 18px rgba(0,220,210,.1),inset 0 0 18px rgba(0,255,255,.04)}
+.btn-apps.coin{border-color:rgba(255,196,94,.3);box-shadow:0 0 18px rgba(255,178,62,.1),inset 0 0 18px rgba(255,196,94,.04)}
+.btn-apps.coin .app-icon{color:#ffd27a}
+.btn-apps.vpn .app-icon{color:#65e8ef}
 .btn-apps .glitch-title{
-  font-size:18px;font-weight:900;letter-spacing:3px;text-transform:uppercase;line-height:1.15;
+  font-size:clamp(11px,3.1vw,14px);font-weight:900;letter-spacing:1.2px;text-transform:uppercase;line-height:1.15;
   color:#fff;font-family:Impact,'Arial Black',system-ui,sans-serif;
   text-shadow:0 0 6px #ff00aa,0 0 14px rgba(255,0,170,.7),0 0 28px rgba(0,255,255,.35),
     2px 0 0 rgba(255,0,100,.5),-2px 0 0 rgba(0,255,255,.4);
   animation:title-blink 1.6s steps(1) infinite;
 }
 @keyframes title-blink{0%,42%{opacity:1}43%{opacity:.25}44%,86%{opacity:1}87%{opacity:.4}88%,100%{opacity:1}}
-.btn-apps .glitch-sub{font-size:9px;letter-spacing:2px;color:rgba(0,255,255,.55);font-weight:500;text-transform:lowercase}
+.btn-apps .glitch-sub{font-size:8px;letter-spacing:1px;color:rgba(0,255,255,.62);font-weight:600;text-transform:uppercase}
+.btn-apps.coin .glitch-sub{color:rgba(255,210,122,.72)}
 .home-hint{margin-top:12px;font-size:10.5px;color:var(--mute);line-height:1.4;max-width:290px}
-#l2d-tag{
-  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
-  font-size:9px;letter-spacing:.6px;color:var(--b);
-  background:rgba(0,0,0,.45);padding:3px 8px;border-radius:8px;white-space:nowrap;z-index:3;
-}
-#l2d-tag.hide{display:none}
-
 /* ===== CHAT ===== */
 #chat-view{display:none;flex-direction:column;height:100%;padding:0 12px;padding-top:max(8px,env(safe-area-inset-top));position:relative;z-index:2;pointer-events:auto}
 #chat-view.open{display:flex}
@@ -180,6 +213,15 @@ body::before{
 <canvas id="fx"></canvas>
 <div class="noise"></div>
 <div id="stage"></div>
+<div id="room3d" aria-label="Интерактивная 3D-комната PXAX Ai">
+  <div class="room-hotspots">
+    <button class="room-hotspot" type="button" data-room-action="bed">ОТДОХНУТЬ</button>
+    <button class="room-hotspot" type="button" data-room-action="desk">НОУТБУК</button>
+    <button class="room-hotspot" type="button" data-room-action="door">ДВЕРЬ</button>
+  </div>
+  <div id="scene-loading">ЗАГРУЖАЮ 3D-КОМНАТУ…</div>
+  <div id="scene-error" role="alert" hidden></div>
+</div>
 <div class="wrap">
   <section id="home">
     <div class="home-top">
@@ -187,15 +229,28 @@ body::before{
       <div class="home-sub">PXAX · neural agent</div>
       <div class="home-status off" id="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
     </div>
+    <div class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></div>
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
-      <button type="button" class="btn-apps" id="btn-apps">
-        <span class="glitch-title" id="apps-title">PXAXBET</span>
-        <span class="glitch-sub">заявки</span>
-      </button>
+      <div class="home-apps" aria-label="Другие приложения">
+        <button type="button" class="btn-apps" id="btn-apps" aria-label="Открыть приложение заявок">
+          <span class="app-icon" aria-hidden="true">✦</span>
+          <span class="glitch-title" id="apps-title">PXAXBET</span>
+          <span class="glitch-sub">Заявки</span>
+        </button>
+        <button type="button" class="btn-apps vpn" id="btn-vpn" aria-label="Открыть приложение VPN">
+          <span class="app-icon" aria-hidden="true">⌁</span>
+          <span class="glitch-title">VPN</span>
+          <span class="glitch-sub">Vph</span>
+        </button>
+        <button type="button" class="btn-apps coin" id="btn-coin" aria-label="Открыть VibeCoin">
+          <span class="app-icon" aria-hidden="true">◈</span>
+          <span class="glitch-title">VPHX</span>
+          <span class="glitch-sub">VibeCoin</span>
+        </button>
+      </div>
     </div>
-    <p class="home-hint">Тестовая версия. Кликай по девушке — она реагирует.</p>
-    <div id="l2d-tag">loading…</div>
+    <p class="home-hint">Коснись кровати, ноутбука или двери — она займётся делом.</p>
   </section>
   <section id="chat-view">
     <div class="chat-top">
@@ -220,15 +275,9 @@ body::before{
 </div>
 <div id="toast"></div>
 
-<!-- Live2D SDK: Cubism 4 core + Cubism 2 core + Pixi 6 + pixi-live2d-display -->
-<script src="https://cdn.jsdelivr.net/npm/live2dcubismcore@1.0.2/live2dcubismcore.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/live2dcubismcore@1.0.2/live2d.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.9/dist/browser/pixi.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"></script>
-
 <script>
 /* =========================================================
-   PXAX · Ai — ядро (UI + чат + Live2D персонаж)
+   PXAX · Ai — ядро (UI + чат + 3D-комната)
    ========================================================= */
 (function () {
   'use strict';
@@ -236,20 +285,60 @@ body::before{
   var CFG = {
     AI_API_URL: 'https://pxaxai.xstayis.workers.dev',
     APPS_LINK: 'https://t.me/pxaxbetpay_bot',
+    VPN_LINK: 'https://xstayis-hue.github.io/Vph/',
+    COIN_LINK: 'https://xstayis-hue.github.io/PHXcoin/',
     BOT_NAME: 'pxaxgent',
     TIMEOUT: 28000,
     HISTORY_KEY: 'pxax_ai_history_v3',
     HISTORY_MAX: 80,
     CONTEXT_LEN: 8,
-    /* бесплатные Live2D-модели (Live2D Free Material License) */
-    MODELS: [
-      { json: 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@master/test/assets/haru/haru_greeter_t03.model3.json', scale: 0.32, y: 0.60 },
-      { json: 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@master/test/assets/shizuku/shizuku.model.json', scale: 0.17, y: 0.62 },
-      { json: 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@master/test/assets/Epsilon2.1/Epsilon2.1.model.json', scale: 0.20, y: 0.62 }
-    ]
   };
 
   var $ = function (id) { return document.getElementById(id); };
+
+  var room = { busy: false, status: 'Осматривает комнату' };
+
+  function roomStatus(text) {
+    room.status = text;
+    $('room-state').textContent = text;
+  }
+
+  function roomUpdate(text, busy) {
+    room.busy = !!busy;
+    roomStatus(text);
+  }
+  window.pxaxRoomUpdate = roomUpdate;
+  window.pxaxRoomToast = toast;
+
+  function roomClock() {
+    var now = new Date();
+    $('room-clock').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    if (!room.busy) {
+      var hour = now.getHours();
+      roomStatus(hour >= 23 || hour < 7 ? 'В комнате тихая ночь' : hour >= 7 && hour < 12 ? 'Начинается утро' : hour >= 18 ? 'Вечерний отдых' : 'Осматривает комнату');
+    }
+  }
+  roomClock();
+  setInterval(roomClock, 15000);
+
+  function roomAction(action, automatic) {
+    var messages = {
+      bed: ['Устроюсь на минутку…', 'Немного отдыха — и снова за дела 🤍'],
+      desk: ['Проверю, что там в ноутбуке.', 'Сейчас закончу мысль…'],
+      door: ['Скоро вернусь, не скучай~', 'Вышла ненадолго!']
+    };
+    if (!Object.prototype.hasOwnProperty.call(messages, action)) return;
+    if (!window.pxaxRoom3d) {
+      toast('3D-комната загружается…');
+      return;
+    }
+    if (!window.pxaxRoom3d.act(action)) return;
+    if (!automatic) {
+      haptic('select');
+      toast(messages[action][Math.floor(Math.random() * messages[action].length)]);
+    }
+  }
+  window.pxaxRoomAction = roomAction;
 
   /* --- хранилище с fallback --- */
   var mem = {};
@@ -296,11 +385,17 @@ body::before{
     var el = $('apps-title'), a = true;
     setInterval(function () { a = !a; el.textContent = a ? 'PXAXBET' : 'PXAXBYTE'; }, 1600);
   })();
-  $('btn-apps').onclick = function () {
+  function openApp(url, telegramLink) {
     haptic('select');
-    try { if (tg && tg.openTelegramLink) { tg.openTelegramLink(CFG.APPS_LINK); return; } } catch (e) {}
-    window.open(CFG.APPS_LINK, '_blank');
-  };
+    try {
+      if (tg && telegramLink && tg.openTelegramLink) { tg.openTelegramLink(url); return; }
+      if (tg && !telegramLink && tg.openLink) { tg.openLink(url); return; }
+    } catch (e) {}
+    window.open(url, '_blank', 'noopener');
+  }
+  $('btn-apps').onclick = function () { openApp(CFG.APPS_LINK, true); };
+  $('btn-vpn').onclick = function () { openApp(CFG.VPN_LINK, false); };
+  $('btn-coin').onclick = function () { openApp(CFG.COIN_LINK, false); };
 
   /* --- фон: нейросеть --- */
   (function () {
@@ -366,107 +461,15 @@ body::before{
     resize(); window.addEventListener('resize', resize); tick();
   })();
 
-  /* =========================================================
-     LIVE2D ПЕРСОНАЖ
-     ========================================================= */
-  var l2d = { app: null, model: null, ready: false, idx: 0 };
-  function l2dTag(msg, hide) {
-    var t = $('l2d-tag');
-    if (!t) return;
-    t.textContent = msg || '';
-    t.classList.toggle('hide', !!hide);
+  function roomEmote(list) {
+    if (!window.pxaxRoom3d) return;
+    var name = list.join(' ').toLowerCase();
+    window.pxaxRoom3d.emote(/talk/.test(name) ? 'talk' : /tap/.test(name) ? 'tap' : 'listening');
   }
 
-  function l2dBoot() {
-    if (typeof PIXI === 'undefined' || !PIXI.live2d) { l2dTag('sdk fail'); return; }
-    try {
-      l2d.app = new PIXI.Application({
-        resizeTo: window,
-        backgroundAlpha: 0,
-        antialias: true,
-        autoDensity: true,
-        resolution: Math.min(window.devicePixelRatio || 1, 2),
-        view: document.createElement('canvas')
-      });
-    } catch (e) { l2dTag('no webgl'); return; }
-    $('stage').appendChild(l2d.app.view);
-    l2d.app.stage.interactive = true;
-    l2dLoad(0);
+  function roomSpeakAnimation(words) {
+    if (window.pxaxRoom3d) window.pxaxRoom3d.speak(words);
   }
-
-  function l2dLoad(i) {
-    if (i >= CFG.MODELS.length) { l2dTag('load fail'); return; }
-    l2d.idx = i;
-    var cfg = CFG.MODELS[i];
-    l2dTag('loading ' + (i + 1));
-    PIXI.live2d.Live2DModel.from(cfg.json, { autoInteract: true }).then(function (model) {
-      if (l2d.model) { l2d.app.stage.removeChild(l2d.model); l2d.model.destroy(); }
-      model.anchor.set(0.5, 0.55);
-      model.scale.set(l2dFitScale(model, cfg.scale));
-      model.x = window.innerWidth / 2;
-      model.y = window.innerHeight * cfg.y;
-      l2d.app.stage.addChild(model);
-      l2d.model = model;
-      l2d.ready = true;
-      l2dTag('', true);
-
-      /* клик по девушке → реакция + фраза в тосте */
-      model.on('hit', function (areas) {
-        haptic('select');
-        l2dMotion(['TapBody', 'tap_body', 'Tap', 'tap']);
-        var lines = areas.some(function (a) { return /head|face/i.test(a); })
-          ? ['Хи~ по голове не гладь, я занята 🤍', 'Мм? Слушаю.', 'Ай, аккуратнее~']
-          : ['Ой! Ты чего 😳', 'Не отвлекай, я думаю о коде.', 'Хм? Что-то нужно?'];
-        toast(lines[Math.floor(Math.random() * lines.length)]);
-      });
-
-      window.addEventListener('resize', function () {
-        if (!l2d.model) return;
-        l2d.model.x = window.innerWidth / 2;
-        l2d.model.y = window.innerHeight * CFG.MODELS[l2d.idx].y;
-      });
-    }).catch(function () { l2dLoad(i + 1); });
-  }
-
-  function l2dFitScale(model, base) {
-    /* вписываем модель в высоту экрана (не больше 72%) */
-    var h = model.internalModel ? model.internalModel.height : 0;
-    if (h > 0) {
-      var fit = (window.innerHeight * 0.72) / (h * base);
-      return base * Math.min(fit, 1);
-    }
-    return base;
-  }
-
-  function l2dMotion(list) {
-    if (!l2d.model) return;
-    for (var i = 0; i < list.length; i++) {
-      try { if (l2d.model.motion(list[i])) return; } catch (e) {}
-    }
-  }
-
-  /* lip-sync: дёргаем параметр рта, пока «говорит» */
-  var lipTimer = null;
-  function l2dLipSync(words) {
-    if (!l2d.model) return;
-    var core = l2d.model.internalModel && l2d.model.internalModel.coreModel;
-    if (!core) return;
-    var keys = ['PARAM_MOUTH_OPEN_Y', 'ParamMouthOpenY', 'PARAM_MOUTH_OPEN'];
-    clearInterval(lipTimer);
-    var n = 0, max = Math.min(words, 60);
-    lipTimer = setInterval(function () {
-      n++;
-      var v = n >= max ? 0 : 0.35 + 0.65 * Math.abs(Math.sin(n * 1.7));
-      for (var i = 0; i < keys.length; i++) {
-        try { core.setParameterValueById(keys[i], v); } catch (e) {}
-      }
-      if (n >= max) clearInterval(lipTimer);
-    }, 85);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(l2dBoot, 150); });
-  } else { setTimeout(l2dBoot, 150); }
 
   /* =========================================================
      ЧАТ
@@ -475,30 +478,6 @@ body::before{
   var input = $('input'), sendBtn = $('send');
   var modeLabel = $('mode-label'), homeStatus = $('home-status'), chatStatus = $('chat-status');
   var miniDot = $('mini-dot');
-  var chatTouchStart = null;
-  function isChatControl(target) {
-    return target.closest && target.closest('.chat-top, .msg, .suggest, .composer');
-  }
-  /* The transparent chat area covers the canvas, so forward taps through it to Live2D. */
-  chatView.addEventListener('pointerdown', function (e) {
-    if (e.pointerType !== 'touch' || isChatControl(e.target)) {
-      chatTouchStart = null;
-      return;
-    }
-    chatTouchStart = { x: e.clientX, y: e.clientY, id: e.pointerId };
-  });
-  chatView.addEventListener('pointerup', function (e) {
-    var start = chatTouchStart;
-    chatTouchStart = null;
-    if (!start || e.pointerType !== 'touch' || e.pointerId !== start.id
-        || isChatControl(e.target) || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 12) return;
-    var interaction = l2d.app && l2d.app.renderer.plugins.interaction;
-    if (!l2d.model || !interaction) return;
-    var point = { x: 0, y: 0 };
-    interaction.mapPositionToPoint(point, e.clientX, e.clientY);
-    l2d.model.tap(point.x, point.y);
-  });
-  chatView.addEventListener('pointercancel', function () { chatTouchStart = null; });
   var history = [];
   try {
     history = JSON.parse(storage.getItem(CFG.HISTORY_KEY) || '[]');
@@ -559,10 +538,12 @@ body::before{
   function setThinking(on) {
     miniDot.classList.toggle('think', on);
     $('stage').classList.toggle('thinking', on);
+    if (on && window.pxaxRoom3d) window.pxaxRoom3d.emote('thinking');
   }
   function setListening(on) {
     miniDot.classList.toggle('listen', on);
     $('stage').classList.toggle('listening', on);
+    if (on && window.pxaxRoom3d) window.pxaxRoom3d.emote('listening');
   }
   function noteTyping() {
     if (busy) return;
@@ -571,7 +552,7 @@ body::before{
       setListening(true);
       if (!typingActive) {
         typingActive = true;
-        l2dMotion(['Tap', 'TapBody', 'TapHead']);
+        roomEmote(['Tap', 'TapBody', 'TapHead']);
       }
       typingTimer = setTimeout(stopTyping, 1400);
     } else {
@@ -595,6 +576,8 @@ body::before{
   function openChat() {
     haptic('select');
     home.classList.add('hidden');
+    document.body.classList.add('chat-open');
+    if (window.pxaxRoom3d) window.pxaxRoom3d.setMode('chat');
     chatView.classList.add('open');
     unlock();
     if (!chatBooted) {
@@ -613,6 +596,8 @@ body::before{
     unlock();
     chatView.classList.remove('open');
     home.classList.remove('hidden');
+    document.body.classList.remove('chat-open');
+    if (window.pxaxRoom3d) window.pxaxRoom3d.setMode('room');
   }
   $('btn-chat').onclick = openChat;
   $('btn-back').onclick = closeChat;
@@ -646,8 +631,7 @@ body::before{
     chatEl.appendChild(div);
     var body = div.querySelector('.stream-body');
     var words = String(text).split(/(\s+)/);
-    l2dLipSync(words.length);
-    l2dMotion(['talk', 'Talk', 'talking']);
+    roomSpeakAnimation(words.length);
     var i = 0;
     function step() {
       if (i >= words.length) {
@@ -736,5 +720,6 @@ body::before{
   };
 })();
 </script>
+<script type="module" src="./scene3d.js"></script>
 </body>
 </html>
