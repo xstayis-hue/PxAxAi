@@ -1,6 +1,6 @@
 {
-  "name": "PXAX · Ai",
-  "short_name": "Ai",
+  "name": "PXAX · Nova",
+  "short_name": "Nova",
   "description": "Живой нейро-агент в 3D-комнате: разговаривает, живёт по тамагочи-ритму, зарабатывает и тратит кристаллы.",
   "start_url": ".",
   "display": "standalone",
@@ -9,7 +9,7 @@
   "theme_color": "#07060f",
   "icons": [
     {
-      "src": "assets/avatar-ai.svg",
+      "src": "assets/avatar-nova.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

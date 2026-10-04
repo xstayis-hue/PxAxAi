@@ -1,4 +1,4 @@
-# PXAX · Ai — 3D AI-компаньон (Telegram Mini App)
+# PXAX · Nova — 3D AI-компаньон (Telegram Mini App)
 
 Живой нейро-агент в 3D-комнате: разговаривает через LLM, живёт по тамагочи-ритму (голод, жажда, усталость, туалет), зарабатывает кристаллы ◈ в мини-играх, тратит их на еду и уход. Хаб экосистемы PXAX: из приложения открываются боты прогнозов, VPN и монеты.
 
@@ -32,7 +32,7 @@ js/
   perf.js            — reduced-motion, пауза при скрытой вкладке
   quests.js          — дейли-квесты, стрик
 assets/
-  avatar-ai.svg      — аватар в чате
+  avatar-nova.svg      — аватар в чате
   scene3d/           — модели персонажа и библиотека анимаций (glb)
 worker/
   index.js           — Cloudflare Worker: state-aware LLM, SSE, KV-память

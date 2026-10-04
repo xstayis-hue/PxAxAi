@@ -208,9 +208,9 @@ function createRoom() {
   }
 
   const hotspots = {
-    bed: new THREE.Vector3(-1.5, 1.06, 0.12),
-    desk: new THREE.Vector3(1.47, 1.86, -0.3),
-    door: new THREE.Vector3(1.65, 2.95, -2.5)
+    bed: new THREE.Vector3(-1.5, 0.95, 0.12),
+    desk: new THREE.Vector3(1.47, 1.35, -0.3),
+    door: new THREE.Vector3(1.65, 1.6, -2.5)
   };
   const buttons = Array.from(host.querySelectorAll('[data-room-action]'));
   for (const button of buttons) {
@@ -698,6 +698,9 @@ function positionHotspots() {
     button._pd = disabled;
     button.style.left = `${x}px`;
     button.style.top = `${y}px`;
+    // невидимая зона клика поверх объекта (CSS width/height = 0, растягиваем отсюда)
+    button.style.width = '120px';
+    button.style.height = '90px';
     button.hidden = hidden;
     button.disabled = disabled;
   }

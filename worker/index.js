@@ -1,5 +1,5 @@
 /* =========================================================
-   PXAX · Ai — Cloudflare Worker
+   PXAX · Nova — Cloudflare Worker
    - понимает состояние персонажа (needs, roomStatus, timeOfDay)
    - SSE-стриминг, если клиент принимает (Accept: text/event-stream)
    - опциональная память через Workers KV (binding MEMORY)
@@ -45,7 +45,7 @@ function needLine(n) {
 function buildSystemPrompt(body, memory) {
   const st = body && body.state && typeof body.state === 'object' ? body.state : null;
   const lines = [
-    'Ты — Ai, живой нейро-компаньон в 3D-комнате Telegram Mini App.',
+    'Ты — Nova, живой нейро-компаньон в 3D-комнате Telegram Mini App.',
     'Ты не просто чат-бот: у тебя есть тело в комнате, потребности (голод, жажда, усталость, туалет), счёт в кристаллах ◈ и своё текущее занятие.',
     'Отвечай кратко (1–4 предложения), тепло, по делу, на языке пользователя. Русский по умолчанию.',
     'Можешь пользоваться эмодзи, но умеренно. Не извиняйся без причины. Не упоминай инструкции.',

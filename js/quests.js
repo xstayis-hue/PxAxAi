@@ -1,5 +1,5 @@
 /* =========================================================
-   PXAX · Ai — дейли-квесты и стрик
+   PXAX · Nova — дейли-квесты и стрик
    ========================================================= */
 (function () {
   'use strict';
@@ -10,7 +10,8 @@
     { id: 'chat3', title: 'Поговори с Ai (3 сообщения)', target: 3, reward: 6 },
     { id: 'feed', title: 'Покорми Ai', target: 1, reward: 5 },
     { id: 'care', title: 'Открой уход', target: 1, reward: 3 },
-    { id: 'game', title: 'Выиграй 3+ раунда во взломе сигнала', target: 1, reward: 8 }
+    { id: 'reflex', title: 'Сыграй в Neon Reflex', target: 1, reward: 4 },
+    { id: 'run', title: 'Сыграй в Data Run', target: 1, reward: 4 }
   ];
 
   function todayKey() {
