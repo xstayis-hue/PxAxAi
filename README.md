@@ -3,7 +3,7 @@
 Живой нейро-агент в 3D-комнате: разговаривает через LLM, живёт по тамагочи-ритму (голод, жажда, усталость, туалет), зарабатывает кристаллы ◈ в мини-играх, тратит их на еду и уход. Хаб экосистемы PXAX: из приложения открываются боты прогнозов, VPN и монеты.
 
 **Демо (GitHub Pages):** https://xstayis-hue.github.io/PxAxAi/
-**Telegram-бот для привязки:** `@pxaxgent`
+**Telegram-бот для привязки:** `@PxAxAi_bot`
 
 ![platform](https://img.shields.io/badge/telegram-mini%20app-blue) ![three](https://img.shields.io/badge/three.js-0.166-black) ![worker](https://img.shields.io/badge/cloudflare-worker-orange) ![license](https://img.shields.io/badge/license-MIT-green)
 

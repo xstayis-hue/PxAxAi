@@ -5,7 +5,6 @@ compatibility_date = "2024-10-01"
 [ai]
 binding = "AI"
 
-# Опционально: память пользователей (после `wrangler kv namespace create MEMORY` вставь id)
-# [[kv_namespaces]]
-# binding = "MEMORY"
-# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+[[kv_namespaces]]
+binding = "MEMORY"
+id = "a1e886f2a23a442c85d7b43580b7dea7"
