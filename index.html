@@ -154,6 +154,10 @@ body::before{
 @keyframes title-blink{0%,42%{opacity:1}43%{opacity:.25}44%,86%{opacity:1}87%{opacity:.4}88%,100%{opacity:1}}
 .btn-apps .glitch-sub{font-size:8px;letter-spacing:1px;color:rgba(0,255,255,.62);font-weight:600;text-transform:uppercase}
 .btn-apps.coin .glitch-sub{color:rgba(255,210,122,.72)}
+.btn-apps.coin .glitch-sub.t-up{color:rgba(123,240,178,.85)}
+.btn-apps.coin .glitch-sub.t-down{color:rgba(255,116,140,.85)}
+.btn-apps.coin .glitch-sub.t-load{animation:blink-sub 1.4s steps(2) infinite}
+@keyframes blink-sub{50%{opacity:.35}}
 .home-hint{margin-top:12px;font-size:10.5px;color:var(--mute);line-height:1.4;max-width:290px}
 /* ===== CHAT ===== */
 #chat-view{display:none;flex-direction:column;height:100%;padding:0 12px;padding-top:max(8px,env(safe-area-inset-top));position:relative;z-index:2;pointer-events:auto}
@@ -331,7 +335,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
         <button type="button" class="btn-apps coin" id="btn-coin" aria-label="Открыть VibeCoin">
           <span class="app-icon" aria-hidden="true">◈</span>
           <span class="glitch-title">VPHX</span>
-          <span class="glitch-sub">VibeCoin</span>
+          <span class="glitch-sub" id="coin-ticker">VibeCoin</span>
         </button>
       </div>
     </div>
@@ -423,7 +427,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     AI_API_URL: 'https://pxaxai.xstayis.workers.dev',
     PREDICTIONS_LINK: 'https://t.me/pxaxbetai_bot',
     VPN_LINK: 'https://t.me/Vphoenixx_bot',
-    COIN_LINK: 'https://t.me/PHXcryptocoin_bot',
+    COIN_LINK: 'https://xstayis-hue.github.io/PHXcoin/',
     BOT_NAME: CHARACTER.bot,
     CHAR: CHARACTER,
     TIMEOUT: 28000,
@@ -535,6 +539,27 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   $('btn-apps').onclick = function () { openApp(CFG.PREDICTIONS_LINK, true); };
   $('btn-vpn').onclick = function () { openApp(CFG.VPN_LINK, true); };
   $('btn-coin').onclick = function () { openApp(CFG.COIN_LINK, true); };
+
+  /* --- тикер TON в карточке коина --- */
+  (function () {
+    var el = $('coin-ticker');
+    if (!el || !navigator.onLine) return;
+    el.classList.add('t-load');
+    function fill(json) {
+      var prices = json && json.prices;
+      if (!Array.isArray(prices) || prices.length < 2) throw new Error('bad');
+      var first = Number(prices[0][1]), cur = Number(prices[prices.length - 1][1]);
+      if (!isFinite(first) || !isFinite(cur) || first <= 0) throw new Error('bad');
+      var ch = ((cur - first) / first) * 100;
+      el.classList.remove('t-load');
+      el.classList.add(ch > 0.05 ? 't-up' : ch < -0.05 ? 't-down' : '');
+      el.textContent = 'TON $' + cur.toFixed(2) + ' ' + (ch > 0.05 ? '▲' : ch < -0.05 ? '▼' : '·') + Math.abs(ch).toFixed(1) + '%';
+    }
+    fetch('https://api.coingecko.com/api/v3/coins/the-open-network/market_chart?vs_currency=usd&days=1')
+      .then(function (r) { if (!r.ok) throw new Error('http'); return r.json(); })
+      .then(fill)
+      .catch(function () { el.classList.remove('t-load'); el.textContent = 'VibeCoin · pre-launch'; });
+  })();
 
   /* --- фон: нейросеть --- */
   (function () {
