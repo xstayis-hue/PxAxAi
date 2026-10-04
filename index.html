@@ -121,7 +121,7 @@ body::before{
 .need-fill{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#61e3e7,#a078ff);transition:width .3s,background .3s}
 .need-fill.warn{background:linear-gradient(90deg,#ffcd68,#ff748c)}
 .care-open,.chat-care{border:1px solid rgba(92,225,230,.25);border-radius:11px;background:rgba(12,20,32,.88);color:#baf8f5;font:600 12px/1.2 system-ui,sans-serif;cursor:pointer}
-.care-open{width:100%;padding:10px}
+.care-open{width:100%;padding:10px;margin-top:14px}
 .care-open:disabled,.chat-care:disabled{opacity:.6;cursor:default}
 .home-apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
 .btn-main{
@@ -304,9 +304,9 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
 <div id="stage"></div>
 <div id="room3d" aria-label="Интерактивная 3D-комната PXAX Ai">
   <div class="room-hotspots">
-    <button class="room-hotspot" type="button" data-room-action="bed">ОТДОХНУТЬ</button>
-    <button class="room-hotspot" type="button" data-room-action="desk">НОУТБУК</button>
-    <button class="room-hotspot" type="button" data-room-action="door">ДВЕРЬ</button>
+    <button class="room-hotspot" type="button" data-room-action="bed" aria-label="Кровать — отдых"></button>
+    <button class="room-hotspot" type="button" data-room-action="desk" aria-label="Ноутбук"></button>
+    <button class="room-hotspot" type="button" data-room-action="door" aria-label="Дверь"></button>
   </div>
   <div id="scene-loading">ЗАГРУЖАЮ 3D-КОМНАТУ…</div>
   <div id="scene-error" role="alert" hidden></div>
@@ -314,7 +314,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
 <div class="wrap">
   <section id="home">
     <div class="home-top">
-      <div class="home-title">Nova</div>
+      <div class="home-title" id="char-name">Nova</div>
       <div class="home-sub">PXAX · neural agent</div>
       <div class="home-status off" id="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
     </div>
@@ -339,20 +339,20 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
         </button>
       </div>
     </div>
-    <div class="needs-grid" aria-label="Потребности Nova">
+    <div class="needs-grid" id="needs-grid">
       <div class="need-item"><strong>Голод</strong><output id="need-hunger-value">—</output><span class="need-track"><span class="need-fill" id="need-hunger"></span></span></div>
       <div class="need-item"><strong>Жажда</strong><output id="need-thirst-value">—</output><span class="need-track"><span class="need-fill" id="need-thirst"></span></span></div>
       <div class="need-item"><strong>Усталость</strong><output id="need-fatigue-value">—</output><span class="need-track"><span class="need-fill" id="need-fatigue"></span></span></div>
       <div class="need-item"><strong>В туалет</strong><output id="need-toilet-value">—</output><span class="need-track"><span class="need-fill" id="need-toilet"></span></span></div>
     </div>
     <button type="button" class="care-open" id="care-open">Уход · <span id="home-balance">20</span> ◈</button>
-    <p class="home-hint">Коснись кровати, ноутбука или двери — она займётся делом.<br>Или просто напиши: «иди к ноутбуку», «ложись спать», «чем занята?».</p>
+    <p class="home-hint">Тапни кровать, ноутбук или дверь — так она займётся своим делом.<br>Или напиши: «иди к ноутбуку», «ложись спать», «чем занята?».</p>
   </section>
   <section id="chat-view">
     <div class="chat-top">
       <button type="button" class="back" id="btn-back">‹</button>
       <img class="mini-dot" id="mini-dot" src="./assets/avatar-nova.svg" alt="Портрет Nova">
-      <div class="info"><strong>Nova</strong><span id="chat-status">connecting…</span></div>
+      <div class="info"><strong id="chat-char-name">Nova</strong><span id="chat-status">connecting…</span></div>
       <button type="button" class="chat-care" id="chat-care" aria-label="Открыть уход и мини-игры"><span id="chat-balance">20</span> ◈</button>
     </div>
     <div class="chat" id="chat"></div>
@@ -373,7 +373,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
 <div class="care-modal" id="care-modal" hidden>
   <section class="care-panel" role="dialog" aria-modal="true" aria-labelledby="care-title">
     <div class="care-head">
-      <h2 id="care-title">Комната Nova</h2>
+      <h2 id="care-title">Комната Nova <button type="button" id="rename-btn" title="Переименовать" style="background:none;border:none;color:#9b7bff;font:600 12px system-ui;cursor:pointer;vertical-align:middle">✎</button></h2>
       <span class="care-balance"><span id="modal-balance">20</span> ◈</span>
       <button type="button" class="care-close" id="care-close" aria-label="Закрыть">×</button>
     </div>
@@ -396,7 +396,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     </div>
     <h3 class="care-section-title">Доставка в комнату</h3>
     <div class="shop-grid" id="shop-grid"></div>
-    <p class="care-note">Голод, жажда и другие потребности меняются постепенно в течение реальных часов. При усталости 70%+ Ai спит 5–30 минут, и чат недоступен; в туалет она отлучается на 2–5 минут. Игровая валюта сохраняется на этом устройстве, доставка приходит через 30 секунд.</p>
+    <p class="care-note">Голод, жажда и другие потребности меняются постепенно в течение реальных часов. При усталости 70%+ компаньон спит 5–30 минут, и чат недоступен; в туалет она отлучается на 2–5 минут. Игровая валюта сохраняется на этом устройстве, доставка приходит через 30 секунд.</p>
   </section>
 </div>
 <div id="toast"></div>
@@ -418,10 +418,17 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   var CHARACTER = {
     id: 'nova',
     name: 'Nova',
+    NAME_KEY: 'pxax_char_name_v1',
     avatar: './assets/avatar-nova.svg',
     bot: 'PxAxAi_bot',
     blurb: 'живой нейро-агент в 3D-комнате'
   };
+  function charName() {
+    var custom = null;
+    try { custom = storage.getItem(CHARACTER.NAME_KEY); } catch (e) {}
+    custom = custom && custom.trim().slice(0, 24);
+    return custom || CHARACTER.name;
+  }
 
   var CFG = {
     AI_API_URL: 'https://pxaxai.xstayis.workers.dev',
@@ -757,7 +764,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
 
   function openChat() {
     if (window.pxaxNeeds && window.pxaxNeeds.isSleeping()) {
-      toast('Ai спит. Чат откроется, когда она проснётся.');
+      toast(charName() + ' спит. Чат откроется, когда она проснётся.');
       return;
     }
     haptic('select');
@@ -772,7 +779,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
         for (var i = 0; i < history.length; i++) addMsg(history[i].role, history[i].text, false);
       } else {
         var name = tgUser && tgUser.first_name;
-        addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Я Nova — пиши что угодно, отвечу через нейросеть.', true);
+        addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Я ' + charName() + ' — пиши что угодно, отвечу через нейросеть.', true);
       }
     }
     setTimeout(function () { try { input.focus(); } catch (e) {} }, 250);
@@ -848,6 +855,39 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   var activeQuestId = null;
   var shopSignature = '';
 
+  function applyName() {
+    var n = charName();
+    var els = [
+      document.getElementById('char-name'),
+      document.getElementById('chat-char-name'),
+      document.getElementById('care-title')
+    ];
+    if (els[0]) els[0].textContent = n;
+    if (els[1]) els[1].textContent = n;
+    if (els[2]) {
+      var btn = document.getElementById('rename-btn');
+      els[2].textContent = 'Комната ' + n + ' ';
+      if (btn) els[2].appendChild(btn);
+    }
+    var needsGrid = document.getElementById('needs-grid');
+    if (needsGrid) needsGrid.setAttribute('aria-label', 'Потребности ' + n);
+    var mini = document.getElementById('mini-dot');
+    if (mini) mini.alt = 'Портрет ' + n;
+  }
+
+  function promptRename() {
+    var current = charName();
+    var input = prompt('Как назовём компаньона? (до 24 символов)', current);
+    if (input === null) return;
+    input = input.trim().slice(0, 24);
+    if (!input) { toast('Имя не может быть пустым'); return; }
+    if (input === current) return;
+    try { storage.setItem(CHARACTER.NAME_KEY, input); } catch (e) {}
+    applyName();
+    haptic('success');
+    toast('Теперь её зовут ' + input);
+  }
+
   function saveNeeds() {
     needs.updatedAt = Date.now();
     try { storage.setItem(NEEDS_KEY, JSON.stringify(needs)); }
@@ -866,6 +906,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   }
 
   function renderNeeds() {
+    applyName();
     ['hunger', 'thirst', 'fatigue', 'toilet'].forEach(function (key) {
       var value = clampNeed(needs[key]);
       var fill = $('need-' + key);
@@ -881,7 +922,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     $('modal-balance').textContent = Math.floor(needs.credits);
     $('btn-chat').disabled = !!needs.sleepUntil;
     $('btn-chat').textContent = needs.sleepUntil
-      ? 'Ai спит · ' + clockText(needs.sleepUntil - Date.now())
+      ? charName() + ' спит · ' + clockText(needs.sleepUntil - Date.now())
       : 'Начать диалог';
     renderCareState();
     renderFoodShop();
@@ -978,6 +1019,9 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     careModal.hidden = true;
   }
   $('care-open').addEventListener('click', openCare);
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'rename-btn') { e.stopPropagation(); promptRename(); }
+  });
   $('chat-care').addEventListener('click', openCare);
   $('care-close').addEventListener('click', closeCare);
   careModal.addEventListener('click', function (event) {
@@ -1047,7 +1091,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     sleepTaskStarted = false;
     saveNeeds();
     if (chatView.classList.contains('open')) closeChat();
-    toast('Ai очень устала и легла спать. Чат временно закрыт.');
+    toast(charName() + ' очень устала и легла спать. Чат временно закрыт.');
   }
 
   function startBathroomBreak() {
@@ -1200,8 +1244,8 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   /* локальный fallback-мозг (если workers лежит) */
   function localReply(text) {
     var t = text.toLowerCase();
-    if (/привет|здравств|хай|йо/.test(t)) return 'Привет! Я локальная копия Nova — основной сервер сейчас недоступен, но на простые вопросы отвечу и так.';
-    if (/кто ты|что ты/.test(t)) return 'Я Nova — нейро-агент экосистемы PXAX. Сейчас работаю в локальном режиме: workers-сервер оффлайн.';
+    if (/привет|здравств|хай|йо/.test(t)) return 'Привет! Я локальная копия ' + charName() + ' — основной сервер сейчас недоступен, но на простые вопросы отвечу и так.';
+    if (/кто ты|что ты/.test(t)) return 'Я ' + charName() + ' — нейро-агент экосистемы PXAX. Сейчас работаю в локальном режиме: workers-сервер оффлайн.';
     if (/факт/.test(t)) return 'Факт: первые нейросети (перцептрон Розенблатта) появились в 1957 году — задолго до интернета.';
     if (/идея|помоги/.test(t)) return 'Давай так: опиши задачу в двух предложениях — что за продукт и для кого. Я помогу разложить на шаги. (Локальный режим — отвечаю шаблонами.)';
     if (/нейросет/.test(t)) return 'Нейросеть — это функция с миллионами подкручиваемых параметров. Она учится на примерах: показываешь вход и правильный ответ, она чуть-чуть подкручивает веса, чтобы ошибиться меньше. Миллионы таких подкруток — и сеть «понимает» закономерности.';
@@ -1231,6 +1275,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
       timeOfDay: currentTimeOfDay(),
       roomStatus: room.status,
       userName: tgUser && tgUser.first_name ? String(tgUser.first_name).slice(0, 64) : null,
+      companionName: charName(),
       language: (tgUser && tgUser.language_code) || (navigator.language || 'ru').slice(0, 2)
     };
     return {
@@ -1373,7 +1418,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   function send(text) {
     text = (text || input.value || '').trim();
     if (!text || busy || window.pxaxNeeds.isSleeping()) {
-      if (window.pxaxNeeds.isSleeping()) toast('Ai спит. Чат откроется после пробуждения.');
+      if (window.pxaxNeeds.isSleeping()) toast(charName() + ' спит. Чат откроется после пробуждения.');
       return;
     }
     stopTyping();
