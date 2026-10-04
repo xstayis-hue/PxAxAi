@@ -107,7 +107,7 @@
             var dataLines = [];
             lines.forEach(function (line) {
               if (line.indexOf('event:') === 0) evt = line.slice(6).trim();
-              else if (line.indexOf('data:') === 0) dataLines.push(line.slice(5).trim());
+              else if (line.indexOf('data:') === 0) dataLines.push(line.slice(5).replace(/^ /, ''));
             });
             var data = dataLines.join('\n');
             if (!data) return;
