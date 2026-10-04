@@ -94,17 +94,20 @@ body::before{
 .home-status{
   display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--b);
   padding:5px 12px;border-radius:20px;border:1px solid rgba(92,225,230,.2);
-  background:rgba(10,12,24,.55);margin-top:8px;backdrop-filter:blur(8px);
+  background:rgba(10,12,24,.55);backdrop-filter:blur(8px);
 }
 .home-status .d{width:6px;height:6px;border-radius:50%;background:var(--b);box-shadow:0 0 8px var(--b);animation:blink 1.8s ease-in-out infinite}
 .home-status.off .d{background:#ff6868;box-shadow:0 0 8px #ff6868}
 .home-status.off{color:#ff9c9c;border-color:rgba(255,104,104,.25)}
 @keyframes blink{50%{opacity:.35}}
+.home-badge-row{
+  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+  margin-top:8px;width:100%;padding:0 10px;
+}
 .room-meta{
-  position:absolute;top:calc(103px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
-  display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:12px;
+  display:inline-flex;align-items:center;gap:8px;padding:6px 11px;border-radius:20px;
   color:#d8d2f1;background:rgba(10,9,22,.62);border:1px solid rgba(140,120,255,.2);
-  backdrop-filter:blur(9px);font-size:10px;white-space:nowrap;z-index:3;
+  backdrop-filter:blur(9px);font-size:11px;white-space:nowrap;
 }
 .room-meta strong{color:var(--b);font-variant-numeric:tabular-nums}
 .room-meta span:last-child{color:#a29ab9}
@@ -316,9 +319,11 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     <div class="home-top">
       <div class="home-title" id="char-name">Nova</div>
       <div class="home-sub">PXAX · neural agent</div>
-      <div class="home-status off" id="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
+      <div class="home-badge-row">
+        <div class="home-status off" id="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
+        <div class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></div>
+      </div>
     </div>
-    <div class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></div>
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
       <div class="home-apps" aria-label="Другие приложения">
