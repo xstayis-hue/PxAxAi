@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="description" content="PXAX · Ai — живой нейро-агент в 3D-комнате. Общайся, ухаживай, играй.">
+<meta name="theme-color" content="#07060f">
+<link rel="manifest" href="./manifest.webmanifest">
 <title>PXAX · Ai</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script type="importmap">
@@ -244,6 +247,39 @@ body::before{
   transition:opacity .25s,transform .25s;max-width:86%;text-align:center;
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== ACCESSIBILITY / REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  #net,#fx{display:none}
+}
+body.reduced-motion #net,body.reduced-motion #fx{display:none}
+body.reduced-motion .home-status .d{animation:none}
+body.reduced-motion .btn-apps .glitch-title{animation:none}
+
+/* ===== STREAM STOP BUTTON ===== */
+.send.stop{
+  background:linear-gradient(135deg,#ff6b8a,#ff8a5c);
+  box-shadow:0 4px 16px rgba(255,107,138,.35);
+}
+.send.stop svg path{d:path("M6 6h12v12H6z")}
+
+/* ===== INLINE ACTION BUTTONS IN MESSAGES ===== */
+.msg .msg-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.msg .msg-action{
+  padding:7px 10px;border-radius:9px;border:1px solid rgba(92,225,230,.3);
+  background:rgba(18,25,40,.8);color:#b8f7f2;font:600 11px/1 system-ui,sans-serif;
+  cursor:pointer;white-space:nowrap;
+}
+.msg .msg-action:active{transform:scale(.96)}
+
+/* ===== QUEST CHIP ===== */
+.quest-chip{
+  display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:6px 9px;
+  border-radius:9px;border:1px solid rgba(155,123,255,.3);background:rgba(28,22,50,.8);
+  color:#e3dcff;font-size:10px;cursor:pointer;
+}
+.quest-chip .q-dot{width:6px;height:6px;border-radius:50%;background:#ffd27a;box-shadow:0 0 8px #ffd27a}
 </style>
 </head>
 <body>
@@ -295,7 +331,7 @@ body::before{
       <div class="need-item"><strong>В туалет</strong><output id="need-toilet-value">—</output><span class="need-track"><span class="need-fill" id="need-toilet"></span></span></div>
     </div>
     <button type="button" class="care-open" id="care-open">Уход · <span id="home-balance">20</span> ◈</button>
-    <p class="home-hint">Коснись кровати, ноутбука или двери — она займётся делом.</p>
+    <p class="home-hint">Коснись кровати, ноутбука или двери — она займётся делом.<br>Или просто напиши: «иди к ноутбуку», «ложись спать», «чем занята?».</p>
   </section>
   <section id="chat-view">
     <div class="chat-top">
@@ -327,6 +363,8 @@ body::before{
       <button type="button" class="care-close" id="care-close" aria-label="Закрыть">×</button>
     </div>
     <p class="care-state" id="care-state">Состояние комнаты</p>
+    <h3 class="care-section-title">Задания дня <span id="quest-streak" style="float:right;color:#ffd27a;font-weight:600"></span></h3>
+    <div id="quest-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px"></div>
     <h3 class="care-section-title">Заработать валюту</h3>
     <button type="button" class="game-start" id="game-start">Запустить взлом сигнала · мини-игра</button>
     <div class="game-area" id="game-area" hidden>
@@ -341,6 +379,10 @@ body::before{
 </div>
 <div id="toast"></div>
 
+<script src="./js/perf.js"></script>
+<script src="./js/api.js"></script>
+<script src="./js/agent-actions.js"></script>
+<script src="./js/quests.js"></script>
 <script>
 /* =========================================================
    PXAX · Ai — ядро (UI + чат + 3D-комната)
@@ -387,6 +429,11 @@ body::before{
   roomClock();
   setInterval(roomClock, 15000);
 
+  /* регистрация service worker — только по https, в Telegram и на GitHub Pages */
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    try { navigator.serviceWorker.register('./sw.js').catch(function () {}); } catch (e) {}
+  }
+
   function roomAction(action, automatic) {
     var messages = {
       bed: ['Устроюсь на минутку…', 'Немного отдыха — и снова за дела 🤍'],
@@ -396,13 +443,14 @@ body::before{
     if (!Object.prototype.hasOwnProperty.call(messages, action)) return;
     if (!window.pxaxRoom3d) {
       toast('3D-комната загружается…');
-      return;
+      return false;
     }
-    if (!window.pxaxRoom3d.act(action)) return;
+    if (!window.pxaxRoom3d.act(action)) return false;
     if (!automatic) {
       haptic('select');
       toast(messages[action][Math.floor(Math.random() * messages[action].length)]);
     }
+    return true;
   }
   window.pxaxRoomAction = roomAction;
 
@@ -471,6 +519,10 @@ body::before{
       });
     }
     function tick() {
+      if (window.pxaxPerf && !window.pxaxPerf.shouldAnimate()) {
+        requestAnimationFrame(tick);
+        return;
+      }
       ctx.clearRect(0, 0, w, h);
       var i, j, p, a, b, dx, dy, d;
       for (i = 0; i < nodes.length; i++) {
@@ -508,6 +560,10 @@ body::before{
       });
     }
     function tick() {
+      if (window.pxaxPerf && !window.pxaxPerf.shouldAnimate()) {
+        requestAnimationFrame(tick);
+        return;
+      }
       ctx.clearRect(0, 0, w, h);
       for (var i = 0; i < dots.length; i++) {
         var p = dots[i];
@@ -571,6 +627,7 @@ body::before{
     }, ms);
     x.open('POST', url, true);
     x.setRequestHeader('Content-Type', 'application/json');
+    if (tg && tg.initData) x.setRequestHeader('X-Telegram-Init-Data', tg.initData);
     x.timeout = ms;
     x.onload = function () {
       if (done) return; done = true; clearTimeout(t);
@@ -626,9 +683,18 @@ body::before{
     typingActive = false;
     setListening(false);
   }
-  function unlock() {
+  function unlock(options) {
+    options = options || {};
     busy = false;
     sendBtn.disabled = false;
+    if (activeStream) {
+      var s = activeStream;
+      activeStream = null;
+      if (!options.keepStream) {
+        try { s.abort(); } catch (e) {}
+      }
+    }
+    setStopMode(false);
     setThinking(false);
     stopTyping();
     hideTyping();
@@ -770,6 +836,33 @@ body::before{
     renderFoodShop();
   }
 
+  function renderQuestsPanel() {
+    if (!window.pxaxQuests) return;
+    var list = $('quest-list');
+    var streakEl = $('quest-streak');
+    if (!list) return;
+    window.pxaxQuests.init(storage);
+    var streak = window.pxaxQuests.bumpStreakIfNewDay(storage);
+    if (streakEl) streakEl.textContent = streak > 0 ? '🔥 ' + streak + ' дн. подряд' : '';
+    list.textContent = '';
+    window.pxaxQuests.list().forEach(function (q) {
+      var done = window.pxaxQuests.isClaimed(q.id);
+      var progress = window.pxaxQuests.progress(q.id);
+      var row = document.createElement('div');
+      row.className = 'quest-chip';
+      row.style.cursor = 'default';
+      var dot = document.createElement('span');
+      dot.className = 'q-dot';
+      if (done) { dot.style.background = '#7bf0b2'; dot.style.boxShadow = '0 0 8px #7bf0b2'; }
+      var label = document.createElement('span');
+      label.textContent = (done ? '✓ ' : '') + q.title + ' (' + Math.min(progress, q.target) + '/' + q.target + ') · +' + q.reward + ' ◈';
+      if (done) label.style.opacity = '.55';
+      row.appendChild(dot);
+      row.appendChild(label);
+      list.appendChild(row);
+    });
+  }
+
   function renderCareState() {
     var messages = [];
     if (needs.sleepUntil > Date.now()) messages.push('Спит — проснётся через ' + clockText(needs.sleepUntil - Date.now()));
@@ -818,7 +911,17 @@ body::before{
 
   function openCare() {
     renderNeeds();
+    renderQuestsPanel();
     careModal.hidden = false;
+    if (window.pxaxQuests) {
+      var qc = window.pxaxQuests.track(storage, 'care', 1);
+      if (qc.claimed) {
+        needs.credits += qc.reward;
+        saveNeeds();
+        renderNeeds();
+        toast('Квест: ' + qc.title + ' — +' + qc.reward + ' ◈ 🎉');
+      }
+    }
   }
   function closeCare() {
     careModal.hidden = true;
@@ -848,6 +951,14 @@ body::before{
       gamePrompt.textContent = 'Сигнал очищен! ' + gameScore + '/5 · +' + reward + ' ◈';
       gameOptions.textContent = '';
       gameProgress.textContent = reward ? 'Кредиты добавлены на счёт.' : 'Попробуй ещё раз, чтобы заработать кредиты.';
+      if (window.pxaxQuests && gameScore >= 3) {
+        var qg = window.pxaxQuests.track(storage, 'game', 1);
+        if (qg.claimed) {
+          needs.credits += qg.reward;
+          saveNeeds();
+          toast('Квест: ' + qg.title + ' — +' + qg.reward + ' ◈ 🎉');
+        }
+      }
       renderNeeds();
       return;
     }
@@ -938,6 +1049,13 @@ body::before{
         needs.hunger = clampNeed(needs.hunger - delivered.hunger);
         needs.thirst = clampNeed(needs.thirst - delivered.thirst);
         toast(delivered.name + ' доставлен в комнату! 🍜');
+        if (window.pxaxQuests) {
+          var qf = window.pxaxQuests.track(storage, 'feed', 1);
+          if (qf.claimed) {
+            needs.credits += qf.reward;
+            toast('Квест: ' + qf.title + ' — +' + qf.reward + ' ◈ 🎉');
+          }
+        }
       }
       needs.delivery = null;
     }
@@ -996,6 +1114,7 @@ body::before{
     chatEl.appendChild(div);
     chatEl.scrollTop = chatEl.scrollHeight;
     if (save) { history.push({ role: role, text: text, t: Date.now() }); saveHistory(); }
+    return div;
   }
   /* печать по словам + lip-sync у модели */
   function addMsgStream(text) {
@@ -1046,47 +1165,303 @@ body::before{
     return 'Сервер ИИ сейчас оффлайн, поэтому отвечаю заготовками. Попробуй позже или спроси что-то простое: «факт», «кто ты», «нейросети».';
   }
 
+  function currentTimeOfDay() {
+    var h = new Date().getHours();
+    if (h >= 5 && h < 12) return 'утро';
+    if (h >= 12 && h < 17) return 'день';
+    if (h >= 17 && h < 23) return 'вечер';
+    return 'ночь';
+  }
+
+  function buildPayload(messageText) {
+    var state = {
+      needs: {
+        hunger: Math.round(needs.hunger),
+        thirst: Math.round(needs.thirst),
+        fatigue: Math.round(needs.fatigue),
+        toilet: Math.round(needs.toilet)
+      },
+      credits: Math.floor(needs.credits),
+      sleeping: needs.sleepUntil > Date.now(),
+      awayToilet: needs.toiletUntil > Date.now(),
+      timeOfDay: currentTimeOfDay(),
+      roomStatus: room.status,
+      userName: tgUser && tgUser.first_name ? String(tgUser.first_name).slice(0, 64) : null,
+      language: (tgUser && tgUser.language_code) || (navigator.language || 'ru').slice(0, 2)
+    };
+    return {
+      message: messageText,
+      history: history.slice(-CFG.CONTEXT_LEN).map(function (m) { return { role: m.role, text: m.text }; }),
+      state: state,
+      availableActions: ['bed', 'desk', 'door', 'toilet', 'open_vpn', 'open_predictions', 'open_coin'],
+      links: {
+        vpn: CFG.VPN_LINK,
+        predictions: CFG.PREDICTIONS_LINK,
+        coin: CFG.COIN_LINK
+      }
+    };
+  }
+
+  function describeStatus() {
+    var parts = [];
+    parts.push('Сейчас: ' + room.status.toLowerCase() + '.');
+    parts.push('Голод ' + Math.round(needs.hunger) + '%, жажда ' + Math.round(needs.thirst) +
+      '%, усталость ' + Math.round(needs.fatigue) + '%, туалет ' + Math.round(needs.toilet) + '%.');
+    parts.push('На счету ' + Math.floor(needs.credits) + ' ◈.');
+    if (needs.sleepUntil > Date.now()) parts.push('Вообще-то я сплю…');
+    else if (needs.fatigue >= 70) parts.push('Очень хочу спать, скоро отключусь.');
+    else if (needs.fatigue >= 55) parts.push('Немного устала.');
+    else parts.push('Чувствую себя бодрой!');
+    return parts.join(' ');
+  }
+
+  function setStopMode(on) {
+    sendBtn.classList.toggle('stop', on);
+    sendBtn.setAttribute('aria-label', on ? 'Остановить генерацию' : 'Отправить');
+  }
+
+  /* пробуем вытащить действие/ссылку из JSON-подобного ответа ассистента */
+  function parseAssistantMeta(text) {
+    var meta = { action: null, link: null, clean: text };
+    var match = /\{[^{}]*"(action|link)"[^{}]*\}/.exec(text);
+    if (match) {
+      try {
+        var parsed = JSON.parse(match[0]);
+        if (parsed.action && typeof parsed.action === 'string') meta.action = parsed.action;
+        if (parsed.link && typeof parsed.link === 'string') meta.link = parsed.link;
+        meta.clean = text.replace(match[0], '').trim();
+      } catch (e) {}
+    }
+    return meta;
+  }
+
+  function linkLabel(url) {
+    if (url === CFG.VPN_LINK) return '⌁ Открыть VPN';
+    if (url === CFG.PREDICTIONS_LINK) return '✦ Открыть AI-прогнозы';
+    if (url === CFG.COIN_LINK) return '◈ Открыть VibeCoin';
+    return 'Открыть ссылку';
+  }
+
+  function addMsgWithActions(text, meta) {
+    var div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = '<div class="meta">' + CFG.BOT_NAME + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
+    if (meta && (meta.action || meta.link)) {
+      var row = document.createElement('div');
+      row.className = 'msg-actions';
+      if (meta.link) {
+        var linkBtn = document.createElement('button');
+        linkBtn.type = 'button';
+        linkBtn.className = 'msg-action';
+        linkBtn.textContent = linkLabel(meta.link);
+        linkBtn.addEventListener('click', function () { openApp(meta.link, true); });
+        row.appendChild(linkBtn);
+      }
+      div.appendChild(row);
+    }
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    history.push({ role: 'bot', text: text, t: Date.now() });
+    saveHistory();
+    if (meta && meta.action) {
+      var roomActions = { bed: 'bed', desk: 'desk', door: 'door', toilet: 'toilet', sleep: 'bed' };
+      var roomAction = roomActions[meta.action];
+      if (roomAction) {
+        setTimeout(function () { roomAction(roomAction, true); }, 600);
+      } else if (meta.action === 'open_vpn') {
+        setTimeout(function () { openApp(CFG.VPN_LINK, true); }, 900);
+      } else if (meta.action === 'open_predictions') {
+        setTimeout(function () { openApp(CFG.PREDICTIONS_LINK, true); }, 900);
+      } else if (meta.action === 'open_coin') {
+        setTimeout(function () { openApp(CFG.COIN_LINK, true); }, 900);
+      }
+    }
+  }
+
+  /* локальная обработка команд: вернуть true, если сообщение полностью обработано */
+  function tryLocalCommand(text) {
+    if (!window.pxaxAgentActions) return false;
+    var cmd = window.pxaxAgentActions.match(text);
+    if (!cmd) return false;
+    var a = cmd.action;
+
+    if (cmd.def.isStatus) {
+      addMsg('bot', describeStatus(), true);
+      roomEmote(['Talk']);
+      return true;
+    }
+    if (cmd.def.isWake) {
+      if (window.pxaxNeeds.isSleeping()) {
+        addMsg('bot', 'Ммм… ещё пять минуточек… Разбудить меня можно, только дождавшись конца сна 💤', true);
+      } else {
+        addMsg('bot', 'Я и не сплю! Полностью в боевом режиме ⚡', true);
+      }
+      return true;
+    }
+    if (cmd.def.openCare) {
+      openCare();
+      var reply = a === 'eat'
+        ? (needs.hunger >= 50 ? 'Да, я уже порядком проголодалась! Открыла доставку — выбери что-нибудь 🍜' : 'Могу перекусить. Открыла меню доставки 🍱')
+        : (needs.thirst >= 50 ? 'Очень хочу пить! Открыла доставку, там есть бабл-ти 🧋' : 'Непротив выпить. Открыла меню 🧋');
+      addMsg('bot', reply, true);
+      return true;
+    }
+    if (cmd.def.roomAction) {
+      if (window.pxaxNeeds.isSleeping()) {
+        addMsg('bot', 'Я сплю… разбуди меня позже 😴', true);
+        return true;
+      }
+      var ok = roomAction(cmd.def.roomAction, true);
+      var replies = {
+        bed: 'Хорошо, пойду полежу немного 🛏️',
+        desk: 'Уже иду к ноутбуку, проверю что нового 💻',
+        door: 'Схожу прогуляюсь ненадолго, скоро вернусь 🚪',
+        toilet: 'Ой, спасибо что напомнил! Бегу 🚻'
+      };
+      addMsg('bot', ok ? replies[a] : 'Хотела бы, но сейчас не могу построить маршрут…', true);
+      return true;
+    }
+    return false;
+  }
+
+  var activeStream = null;
+
   function send(text) {
     text = (text || input.value || '').trim();
     if (!text || busy || window.pxaxNeeds.isSleeping()) {
       if (window.pxaxNeeds.isSleeping()) toast('Ai спит. Чат откроется после пробуждения.');
       return;
     }
-    busy = true;
-    sendBtn.disabled = true;
     stopTyping();
     input.value = '';
     autoSize();
     haptic('select');
     addMsg('user', text, true);
+    if (window.pxaxQuests) {
+      var qres = window.pxaxQuests.track(storage, 'chat3', 1);
+      if (qres.claimed) {
+        needs.credits += qres.reward;
+        saveNeeds();
+        renderNeeds();
+        toast('Квест: ' + qres.title + ' — +' + qres.reward + ' ◈ 🎉');
+      }
+    }
+
+    // сначала — локальные команды, они мгновенные и работают офлайн
+    if (tryLocalCommand(text)) {
+      return;
+    }
+
+    busy = true;
+    sendBtn.disabled = false;
+    setStopMode(true);
     setThinking(true);
     showTyping();
 
-    xhrPost(CFG.AI_API_URL, {
-      message: text,
-      history: history.slice(-CFG.CONTEXT_LEN).map(function (m) { return { role: m.role, text: m.text }; })
-    }, CFG.TIMEOUT, function (res) {
+    var payload = buildPayload(text);
+    var fullText = '';
+    var streamDiv = null;
+    var streamBody = null;
+
+    function ensureStreamDiv() {
+      if (streamDiv) return;
+      hideTyping();
+      streamDiv = document.createElement('div');
+      streamDiv.className = 'msg bot';
+      streamDiv.innerHTML = '<div class="meta">' + CFG.BOT_NAME + '</div><span class="stream-body"></span>';
+      chatEl.appendChild(streamDiv);
+      streamBody = streamDiv.querySelector('.stream-body');
+    }
+
+    function finishOk(text) {
+      var meta = parseAssistantMeta(text);
+      if (streamDiv) {
+        streamDiv.remove();
+        streamDiv = null;
+      }
+      addMsgWithActions(meta.clean, meta);
+    }
+
+    function finalizeCommon() {
       hideTyping();
       setThinking(false);
-      if (res.ok) {
-        haptic('success');
-        setApiStatus(true);
-        addMsgStream(res.text);
-      } else {
-        haptic('error');
-        setApiStatus(false);
-        addMsgStream(localReply(text));
-      }
-      unlock();
+      setStopMode(false);
+      activeStream = null;
+      busy = false;
+      sendBtn.disabled = false;
+      sendBtn.onclick = defaultSendHandler;
+      stopTyping();
       try { input.focus(); } catch (e) {}
-    });
+    }
+
+    function fallbackToJson() {
+      if (streamDiv) { streamDiv.remove(); streamDiv = null; }
+      xhrPost(CFG.AI_API_URL, payload, CFG.TIMEOUT, function (res) {
+        if (res.ok) {
+          haptic('success');
+          setApiStatus(true);
+          finishOk(res.text);
+        } else {
+          haptic('error');
+          setApiStatus(false);
+          addMsgStream(localReply(text));
+        }
+        finalizeCommon();
+      });
+    }
+
+    if (window.pxaxApi && window.pxaxApi.supportsStream) {
+      var streamOpts = {};
+      if (tg && tg.initData) streamOpts.headers = { 'X-Telegram-Init-Data': tg.initData };
+      var stream = window.pxaxApi.postStream(CFG.AI_API_URL, payload, {
+        onToken: function (token, acc) {
+          fullText = acc;
+          ensureStreamDiv();
+          streamBody.textContent = fullText;
+          chatEl.scrollTop = chatEl.scrollHeight;
+          roomSpeakAnimation(fullText.split(/\s+/).length);
+        },
+        onDone: function (acc) {
+          fullText = acc || fullText;
+          if (fullText.trim()) {
+            haptic('success');
+            setApiStatus(true);
+            finishOk(fullText);
+          } else {
+            fallbackToJson();
+            return;
+          }
+          finalizeCommon();
+        },
+        onError: function () { fallbackToJson(); },
+        onAbort: function (acc) {
+          if (acc && acc.trim()) {
+            finishOk(acc + ' …');
+          } else if (streamDiv) {
+            streamDiv.remove();
+            streamDiv = null;
+          }
+          finalizeCommon();
+        }
+      }, streamOpts);
+      activeStream = stream;
+      sendBtn.onclick = function () {
+        var s = activeStream;
+        if (s) { activeStream = null; s.abort(); return; }
+        defaultSendHandler();
+      };
+      return;
+    }
+
+    fallbackToJson();
   }
 
   function autoSize() {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 110) + 'px';
   }
-  sendBtn.onclick = function () { send(); };
+  var defaultSendHandler = function () { send(); };
+  sendBtn.onclick = defaultSendHandler;
   input.oninput = function () { autoSize(); noteTyping(); };
   input.onkeydown = function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }

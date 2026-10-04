@@ -1,0 +1,18 @@
+{
+  "name": "PXAX · Ai",
+  "short_name": "Ai",
+  "description": "Живой нейро-агент в 3D-комнате: разговаривает, живёт по тамагочи-ритму, зарабатывает и тратит кристаллы.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07060f",
+  "theme_color": "#07060f",
+  "icons": [
+    {
+      "src": "assets/avatar-ai.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

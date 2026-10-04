@@ -490,7 +490,8 @@ function addRiggedPart(baseRoot, baseBones, gltf, tint, glow) {
 }
 
 function makeTask(action, options = {}) {
-  if (task || mode !== 'room' || !characterRoot) return false;
+  // действия разрешены и в chat-режиме: комната видна на фоне (opacity .48)
+  if (task || !characterRoot) return false;
   task = action;
   taskPhase = 'walk-to';
   taskDurationSeconds = Math.max(0, Number(options.durationSeconds) || 0);
@@ -729,6 +730,11 @@ renderer.domElement.addEventListener('pointerup', onPointerUp);
 
 function animate() {
   frameId = requestAnimationFrame(animate);
+  // вкладка скрыта / reduced-motion — пропускаем кадр, но цикл живёт
+  if (window.pxaxPerf && !window.pxaxPerf.shouldAnimate()) {
+    clock.getDelta(); // сбрасываем delta, чтобы не копилась
+    return;
+  }
   const delta = Math.min(clock.getDelta(), 0.05);
   if (mixer) mixer.update(delta);
   updateTask(delta);

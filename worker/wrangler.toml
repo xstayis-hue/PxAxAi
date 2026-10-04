@@ -1,0 +1,11 @@
+name = "pxaxai"
+main = "index.js"
+compatibility_date = "2024-10-01"
+
+[ai]
+binding = "AI"
+
+# Опционально: память пользователей (после `wrangler kv namespace create MEMORY` вставь id)
+# [[kv_namespaces]]
+# binding = "MEMORY"
+# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
