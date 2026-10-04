@@ -298,6 +298,57 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   color:#e3dcff;font-size:10px;cursor:pointer;
 }
 .quest-chip .q-dot{width:6px;height:6px;border-radius:50%;background:#ffd27a;box-shadow:0 0 8px #ffd27a}
+
+/* voice toggle */
+.voice-toggle{
+  width:34px;height:34px;border-radius:50%;border:1px solid rgba(92,225,230,.3);
+  background:rgba(10,12,24,.55);color:#baf4f8;font-size:15px;cursor:pointer;
+  backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:0;
+  flex:0 0 auto;
+}
+.voice-toggle.off{opacity:.5;color:#8a84a0;border-color:rgba(140,120,255,.2)}
+.home-xp{
+  display:flex;align-items:center;gap:7px;margin-top:8px;padding:5px 10px;border-radius:12px;
+  background:rgba(10,9,22,.55);border:1px solid rgba(140,120,255,.14);
+  font-size:9px;color:#8f88a8;white-space:nowrap;letter-spacing:.3px;width:fit-content;margin-left:auto;margin-right:auto;
+}
+.home-xp strong{color:var(--a);font-weight:700}
+.home-xp span:last-child{color:#89f0e6}
+
+/* laptop predictions widget */
+#laptop-widget{
+  position:absolute;left:50%;top:42%;transform:translate(-50%,-100%);width:212px;z-index:4;
+  padding:9px 10px 8px;border-radius:12px;background:rgba(6,8,18,.88);
+  border:1px solid rgba(92,225,230,.35);box-shadow:0 0 22px rgba(92,225,230,.16);
+  backdrop-filter:blur(10px);pointer-events:auto;opacity:0;transition:opacity .25s;
+  font:11px/1.4 system-ui,sans-serif;
+}
+#laptop-widget.vis{opacity:1}
+.lw-head{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;letter-spacing:.8px;color:#7ff0ea;margin-bottom:7px}
+.lw-dot{width:6px;height:6px;border-radius:50%;background:#5ce1f1;box-shadow:0 0 8px #5ce1f1;animation:blink 1.6s ease-in-out infinite}
+.lw-row{padding:5px 6px;border-radius:8px;background:rgba(255,255,255,.045);margin-bottom:5px}
+.lw-row:last-child{margin-bottom:0}
+.lw-row strong{display:block;font-size:10px;color:#ece7fa;letter-spacing:.2px}
+.lw-row small{display:block;margin-top:2px;font-size:8.5px;color:#9a94b5}
+.lw-pct{color:var(--b);font-weight:700}
+.lw-open{width:100%;margin-top:7px;padding:7px;border:1px solid rgba(92,225,230,.4);border-radius:9px;background:rgba(18,87,102,.35);color:#c5fbff;font:700 9.5px system-ui,sans-serif;letter-spacing:.5px;cursor:pointer}
+body.chat-open #laptop-widget{display:none}
+
+/* care modal: wardrobe, achievements */
+.wardrobe-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.wd-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid rgba(140,120,255,.2);border-radius:11px;background:rgba(8,10,20,.55);color:#d6d0ea;font:500 11px system-ui,sans-serif;cursor:pointer;text-align:left}
+.wd-item .wd-emoji{font-size:16px}
+.wd-item.on{border-color:rgba(92,225,230,.55);background:rgba(18,87,102,.25);box-shadow:0 0 12px rgba(92,225,230,.12)}
+.wd-item.on::after{content:'✓';margin-left:auto;color:var(--b);font-weight:700}
+.wd-item:disabled{opacity:.55;cursor:wait}
+.ach-list{display:grid;gap:6px}
+.ach-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid rgba(140,120,255,.16);border-radius:11px;background:rgba(8,10,20,.5);font-size:11px}
+.ach-row .ach-ico{font-size:15px;filter:grayscale(1) opacity(.55)}
+.ach-row small{display:block;margin-top:1px;color:var(--mute);font-size:9px}
+.ach-row.done{border-color:rgba(125,255,176,.35)}
+.ach-row.done .ach-ico{filter:none}
+.ach-row.done .ach-name{color:#9dffc4}
+.game-card.cooling{opacity:.55}
 </style>
 </head>
 <body>
@@ -313,6 +364,11 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   </div>
   <div id="scene-loading">ЗАГРУЖАЮ 3D-КОМНАТУ…</div>
   <div id="scene-error" role="alert" hidden></div>
+  <div id="laptop-widget" hidden>
+    <div class="lw-head"><span class="lw-dot"></span>PXAX · AI-ПРОГНОЗЫ</div>
+    <div class="lw-rows" id="lw-rows"></div>
+    <button type="button" class="lw-open" id="lw-open">Открыть полный список →</button>
+  </div>
 </div>
 <div class="wrap">
   <section id="home">
@@ -322,7 +378,9 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
       <div class="home-badge-row">
         <div class="home-status off" id="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
         <div class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></div>
+        <button type="button" class="voice-toggle off" id="voice-toggle" aria-label="Голос компаньона: вкл/выкл" aria-pressed="true">🔊</button>
       </div>
+      <div class="home-xp"><strong id="home-level">Уровень 1 · 0/100 XP</strong><span>·</span><span id="home-mood">любопытная</span></div>
     </div>
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
@@ -401,7 +459,11 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     </div>
     <h3 class="care-section-title">Доставка в комнату</h3>
     <div class="shop-grid" id="shop-grid"></div>
-    <p class="care-note">Голод, жажда и другие потребности меняются постепенно в течение реальных часов. При усталости 70%+ компаньон спит 5–30 минут, и чат недоступен; в туалет она отлучается на 2–5 минут. Игровая валюта сохраняется на этом устройстве, доставка приходит через 30 секунд.</p>
+    <h3 class="care-section-title">Гардероб</h3>
+    <div class="wardrobe-grid" id="wardrobe-grid"></div>
+    <h3 class="care-section-title">Достижения</h3>
+    <div class="ach-list" id="ach-list"></div>
+    <p class="care-note">Голод, жажда и другие потребности меняются постепенно в течение реальных часов. При усталости 70%+ компаньон спит 5–30 минут, и чат недоступен; в туалет она отлучается на 2–5 минут. Мини-игры доступны раз в 30 минут. Валюта, уровень, имя и гардероб сохраняются на этом устройстве.</p>
   </section>
 </div>
 <div id="toast"></div>
@@ -467,6 +529,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   function roomClock() {
     var now = new Date();
     $('room-clock').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    if (window.pxaxRoom3d && window.pxaxRoom3d.setHour) window.pxaxRoom3d.setHour(now.getHours());
     if (!room.busy) {
       var hour = now.getHours();
       roomStatus(hour >= 23 || hour < 7 ? 'В комнате тихая ночь' : hour >= 7 && hour < 12 ? 'Начинается утро' : hour >= 18 ? 'Вечерний отдых' : 'Осматривает комнату');
@@ -818,7 +881,9 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     sleepUntil: 0,
     toiletUntil: 0,
     toiletDuration: 0,
-    delivery: null
+    delivery: null,
+    pendingDelivery: null,
+    pendingDeliverySince: 0
   };
   var sleepTaskStarted = false;
   var toiletTaskStarted = false;
@@ -860,6 +925,407 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   var activeQuestId = null;
   var shopSignature = '';
 
+  /* ---- Прогресс: XP, уровень, настроение, достижения (pxax_ai_progress_v1) ---- */
+  var PROGRESS_KEY = 'pxax_ai_progress_v1';
+  var WARDROBE_KEY = 'pxax_ai_wardrobe_v1';
+  var GAMES_KEY = 'pxax_ai_games_v1';
+  var VOICE_KEY = 'pxax_ai_voice_v1';
+  var PRED_CACHE_KEY = 'pxax_ai_pred_cache_v1';
+  var GAME_COOLDOWN_MS = 30 * 60000;
+
+  var progress = { xp: 0, achievements: {}, counters: {}, named: false };
+  try {
+    var storedProgress = JSON.parse(storage.getItem(PROGRESS_KEY) || 'null');
+    if (storedProgress && typeof storedProgress === 'object') {
+      if (Number.isFinite(Number(storedProgress.xp))) progress.xp = Math.max(0, Math.min(1000000, Number(storedProgress.xp)));
+      if (storedProgress.achievements && typeof storedProgress.achievements === 'object') progress.achievements = storedProgress.achievements;
+      if (storedProgress.counters && typeof storedProgress.counters === 'object') progress.counters = storedProgress.counters;
+      if (storedProgress.named) progress.named = true;
+    }
+  } catch (e) {}
+  function saveProgress() {
+    try { storage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (e) {}
+  }
+  function counter(key, step) {
+    progress.counters[key] = Math.max(0, (Number(progress.counters[key]) || 0) + (step || 1));
+    saveProgress();
+  }
+  function level() {
+    return 1 + Math.floor(Math.pow(Math.max(0, progress.xp) / 100, 0.4));
+  }
+  function addXp(n) {
+    progress.xp = Math.max(0, progress.xp + (n | 0));
+    saveProgress();
+    renderXp();
+    checkAchievements();
+  }
+  function renderXp() {
+    var l = level();
+    var base = Math.pow(l - 1, 2.5) * 100;
+    var next = Math.pow(l, 2.5) * 100;
+    var el = $('home-level');
+    if (el) el.textContent = 'Уровень ' + l + ' · ' + Math.floor(progress.xp - base) + '/' + Math.round(next - base) + ' XP';
+  }
+  function touchCare() {
+    progress.counters.lastCare = Date.now();
+    saveProgress();
+    renderMood();
+  }
+  function currentMood() {
+    if (needs.sleepUntil) return { key: 'sleep', label: 'спит' };
+    if (needs.toiletUntil) return { key: 'busy', label: 'приберается' };
+    if (needs.pendingDelivery) return { key: 'happy', label: 'ждёт курьера' };
+    var h = needs.hunger, t = needs.thirst, f = needs.fatigue;
+    if (h < 25 && t < 30 && f < 35) return { key: 'happy', label: 'в отличном настроении' };
+    if (f > 60 || h > 75 || t > 75) return { key: 'tired', label: 'уставшая' };
+    if (h > 45 || t > 50) return { key: 'hungry', label: 'немного голодная' };
+    var last = progress.counters.lastCare || 0;
+    if (Date.now() - last > 48 * 3600000) return { key: 'lonely', label: 'скучновато в комнате' };
+    return { key: 'calm', label: 'спокойная' };
+  }
+  function renderMood() {
+    var m = currentMood();
+    var el = $('home-mood');
+    if (el) el.textContent = m.label;
+    if (window.pxaxRoom3d && window.pxaxRoom3d.setMood) window.pxaxRoom3d.setMood(m.key);
+  }
+  var ACHIEVEMENTS = [
+    { id: 'first-msg', ico: '💬', title: 'Первый диалог', desc: 'отправь первое сообщение', reward: 20, test: function () { return (progress.counters.messages || 0) >= 1; } },
+    { id: 'chat-50', ico: '📜', title: 'Болтун', desc: 'отправь 50 сообщений', reward: 40, test: function () { return (progress.counters.messages || 0) >= 50; } },
+    { id: 'well-fed', ico: '🍜', title: 'Кухня завалена', desc: 'закажи еду и держи голод низким', reward: 25, test: function () { return needs.hunger < 20 && (progress.counters.deliveries || 0) >= 1; } },
+    { id: 'courier-5', ico: '🛵', title: 'Любимец курьеров', desc: 'закажи доставку 5 раз', reward: 40, test: function () { return (progress.counters.deliveries || 0) >= 5; } },
+    { id: 'gamer-5', ico: '🕹️', title: 'Гость аркады', desc: 'сыграй в мини-игры 5 раз', reward: 30, test: function () { return (progress.counters.games || 0) >= 5; } },
+    { id: 'dreams', ico: '☀️', title: 'Выспавшаяся', desc: 'проснись после 5 снов', reward: 30, test: function () { return (progress.counters.wakes || 0) >= 5; } },
+    { id: 'named', ico: '🏷️', title: 'Своё имя', desc: 'названa компаньона', reward: 15, test: function () { return progress.named; } },
+    { id: 'stylist', ico: '👗', title: 'Стиlista', desc: 'смени образ или причёску', reward: 15, test: function () { return (progress.counters.wardrobe || 0) >= 1; } },
+    { id: 'bond-3', ico: '💜', title: 'Подружки', desc: 'достигни 3-го уровня', reward: 50, test: function () { return level() >= 3; } }
+  ];
+  function achUnlocked(id) { return !!progress.achievements[id]; }
+  function checkAchievements() {
+    var newCount = 0;
+    ACHIEVEMENTS.forEach(function (a) {
+      if (!achUnlocked(a.id) && a.test()) {
+        progress.achievements[a.id] = Date.now();
+        needs.credits += a.reward;
+        newCount++;
+      }
+    });
+    if (newCount) {
+      saveProgress();
+      saveNeeds();
+      renderAch();
+      var last = ACHIEVEMENTS[ACHIEVEMENTS.length - newCount];
+      toast('Достижение: ' + last.title + ' — +' + last.reward + ' ◈ 🏆');
+    }
+  }
+  function renderAch() {
+    var list = $('ach-list');
+    if (!list) return;
+    list.innerHTML = '';
+    ACHIEVEMENTS.forEach(function (a) {
+      var done = achUnlocked(a.id);
+      var row = document.createElement('div');
+      row.className = 'ach-row' + (done ? ' done' : '');
+      var ico = document.createElement('span');
+      ico.className = 'ach-ico';
+      ico.textContent = a.ico;
+      var body = document.createElement('div');
+      var name = document.createElement('span');
+      name.className = 'ach-name';
+      name.textContent = a.title;
+      var desc = document.createElement('small');
+      desc.textContent = a.desc + (done ? ' · +' + a.reward + ' ◈' : '');
+      body.appendChild(name);
+      body.appendChild(desc);
+      row.appendChild(ico);
+      row.appendChild(body);
+      list.appendChild(row);
+    });
+  }
+
+  /* ---- Голос (TTS) + конфетти ---- */
+  var voiceEnabled = true;
+  try { voiceEnabled = storage.getItem(VOICE_KEY) !== '0'; } catch (e) {}
+  var ruVoice = null;
+  function pickRuVoice() {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      var voices = speechSynthesis.getVoices() || [];
+      ruVoice = voices.filter(function (v) { return /ru/i.test(v.lang); })
+        .sort(function (a, b) { return (b.name.indexOf('Google') === 0 ? 1 : 0) - (a.name.indexOf('Google') === 0 ? 1 : 0); })[0] || null;
+    } catch (e) {}
+  }
+  function refreshVoiceToggle() {
+    var btn = $('voice-toggle');
+    if (!btn) return;
+    btn.classList.toggle('off', !voiceEnabled);
+    btn.textContent = voiceEnabled ? '🔊' : '🔇';
+    btn.setAttribute('aria-pressed', String(voiceEnabled));
+  }
+  function speakTTS(text) {
+    if (!voiceEnabled || !('speechSynthesis' in window)) return;
+    try {
+      var clean = String(text).replace(/\s+/g, ' ').trim().slice(0, 400);
+      if (!clean || clean.indexOf('⏳') !== -1) return;
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(clean);
+      if (ruVoice) u.voice = ruVoice;
+      u.lang = ruVoice ? ruVoice.lang : 'ru-RU';
+      u.rate = 1;
+      u.pitch = 1.05;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  function burstConfetti() {
+    if (document.body.classList.contains('reduced-motion')) return;
+    var fx = $('fx');
+    if (!fx || !fx.getContext) return;
+    var ctx = fx.getContext('2d');
+    var W = fx.width = fx.clientWidth;
+    var H = fx.height = fx.clientHeight;
+    var parts = [];
+    var colors = ['#ffd27a', '#5ce1f1', '#ff9ff3', '#7dffab', '#ffa8d8', '#c3a6ff'];
+    for (var i = 0; i < 70; i++) {
+      parts.push({
+        x: Math.random() * W,
+        y: -12 - Math.random() * 40,
+        vx: (Math.random() - 0.5) * 2.2,
+        vy: 1.5 + Math.random() * 2.4,
+        s: 4 + Math.random() * 5,
+        r: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.25,
+        c: colors[i % colors.length]
+      });
+    }
+    var t0 = performance.now();
+    (function tick(now) {
+      ctx.clearRect(0, 0, W, H);
+      parts.forEach(function (p) {
+        p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
+        ctx.restore();
+      });
+      if (now - t0 < 2600) requestAnimationFrame(tick);
+      else ctx.clearRect(0, 0, W, H);
+    })(t0);
+  }
+
+  /* ---- pxax-predict: виджет прогнозов на ноутбуке ---- */
+  var laptopWidgetEl = $('laptop-widget');
+  var laptopWidgetOn = false;
+  var predCache = null;
+  try { predCache = JSON.parse(storage.getItem(PRED_CACHE_KEY) || 'null'); } catch (e) {}
+  function xhrGetJson(url, cb, to) {
+    try {
+      var req = new XMLHttpRequest();
+      req.open('GET', url, true);
+      req.timeout = to || 15000;
+      req.onload = function () { if (req.status >= 200 && req.status < 300) cb(req.response); };
+      req.send();
+    } catch (e) {}
+  }
+  function loadPredictions() {
+    xhrGetJson('https://xstayis-hue.github.io/pxax-predict/data/predictions.json', function (raw) {
+      try {
+        var data = JSON.parse(raw);
+        var arr = (data && Array.isArray(data.predictions)) ? data.predictions : (Array.isArray(data) ? data : null);
+        if (!arr || !arr.length) return;
+        arr = arr.slice().sort(function (a, b) { return (b.confidence || 0) - (a.confidence || 0); });
+        predCache = {
+          at: Date.now(),
+          date: data && data.date || '',
+          model: data && data.model || '',
+          top: arr.slice(0, 3).map(function (p) {
+            return {
+              title: (p.home || p.id || '') + ' — ' + (p.away || ''),
+              sub: [p.lgName, p.market, (p.confidence ? p.confidence + '%' : '')].filter(Boolean).join(' · '),
+              time: p.time || ''
+            };
+          })
+        };
+        try { storage.setItem(PRED_CACHE_KEY, JSON.stringify(predCache)); } catch (e2) {}
+        buildLaptopRows();
+      } catch (e) {}
+    });
+  }
+  function buildLaptopRows() {
+    if (!predCache || !predCache.top || !predCache.top.length) return;
+    var wrap = $('lw-rows');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    predCache.top.forEach(function (p) {
+      var row = document.createElement('div');
+      row.className = 'lw-row';
+      var strong = document.createElement('strong');
+      strong.textContent = p.title;
+      var small = document.createElement('small');
+      small.textContent = p.sub + (p.time ? ' · ' + p.time : '');
+      row.appendChild(strong);
+      row.appendChild(small);
+      wrap.appendChild(row);
+    });
+    var head = laptopWidgetEl.querySelector('.lw-head');
+    if (head && predCache.date) {
+      head.childNodes[1] && (head.childNodes[1].nodeValue = 'PXAX · AI-ПРОГНОЗЫ · ' + predCache.date);
+    }
+  }
+  window.pxaxLaptopWidget = function (on) {
+    if (laptopWidgetOn === on) return;
+    laptopWidgetOn = on;
+    if (!laptopWidgetEl) return;
+    if (on) {
+      if (!predCache) loadPredictions();
+      laptopWidgetEl.hidden = false;
+      requestAnimationFrame(function () { laptopWidgetEl.classList.add('vis'); });
+    } else {
+      laptopWidgetEl.classList.remove('vis');
+      setTimeout(function () { if (!laptopWidgetOn) laptopWidgetEl.hidden = true; }, 260);
+    }
+  };
+  window.pxaxRoomWidget = function (x, y, visible) {
+    if (!laptopWidgetEl) return;
+    laptopWidgetEl.style.left = x + 'px';
+    laptopWidgetEl.style.top = y + 'px';
+    laptopWidgetEl.style.transform = 'translate(-50%,-100%)';
+    if (visible !== false) laptopWidgetEl.classList.add('vis');
+  };
+  $('lw-open').addEventListener('click', function () {
+    try { window.open(CFG.PREDICTIONS_LINK, '_blank', 'noopener'); } catch (e) {}
+  });
+
+  /* ---- Гардероб: образы и причёски (pxax_ai_wardrobe_v1) ---- */
+  var WARDROBE_ITEMS = {
+    outfit: [
+      { key: 'peasant', ico: '👗', name: 'Нео-крестьянка' },
+      { key: 'ranger', ico: '🥋', name: 'Кибер-рейнджер' }
+    ],
+    hair: [
+      { key: 'long', ico: '💁‍♀️', name: 'Длинные волосы' },
+      { key: 'buns', ico: '🎽', name: 'Узелки' },
+      { key: 'parted', ico: '💇‍♀️', name: 'Простой пробор' },
+      { key: 'buzz', ico: '✂️', name: 'Коротко' }
+    ]
+  };
+  var wardrobeState = { outfit: 'peasant', hair: 'long' };
+  try {
+    var storedWard = JSON.parse(storage.getItem(WARDROBE_KEY) || 'null');
+    if (storedWard && typeof storedWard === 'object') {
+      if (WARDROBE_ITEMS.outfit.some(function (i) { return i.key === storedWard.outfit; })) wardrobeState.outfit = storedWard.outfit;
+      if (WARDROBE_ITEMS.hair.some(function (i) { return i.key === storedWard.hair; })) wardrobeState.hair = storedWard.hair;
+    }
+  } catch (e) {}
+  function saveWardrobe() {
+    try { storage.setItem(WARDROBE_KEY, JSON.stringify(wardrobeState)); } catch (e) {}
+  }
+  function renderWardrobe() {
+    var grid = $('wardrobe-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    ['outfit', 'hair'].forEach(function (kind) {
+      WARDROBE_ITEMS[kind].forEach(function (item) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'wd-item' + (wardrobeState[kind] === item.key ? ' on' : '');
+        var ico = document.createElement('span');
+        ico.className = 'wd-emoji';
+        ico.textContent = item.ico;
+        var label = document.createElement('span');
+        label.textContent = item.name;
+        btn.appendChild(ico);
+        btn.appendChild(label);
+        btn.addEventListener('click', function () { chooseWardrobeItem(kind, item, btn); });
+        grid.appendChild(btn);
+      });
+    });
+  }
+  function chooseWardrobeItem(kind, item, btn) {
+    if (wardrobeState[kind] === item.key) return;
+    if (!window.pxaxRoom3d || !window.pxaxRoom3d.setWardrobe) { toast('3D-комната ещё загружается…'); return; }
+    btn.disabled = true;
+    var ok = window.pxaxRoom3d.setWardrobe(kind, item.key);
+    if (ok && ok.then) {
+      ok.then(function (applied) {
+        btn.disabled = false;
+        if (!applied) { toast('Не удалось загрузить 3D-часть'); return; }
+        wardrobeState[kind] = item.key;
+        saveWardrobe();
+        counter('wardrobe');
+        addXp(5);
+        renderWardrobe();
+        haptic('success');
+        toast(kind === 'outfit' ? 'Образ обновлён ✨' : 'Причёска обновлена ✨');
+      }, function () {
+        btn.disabled = false;
+        toast('Не удалось загрузить 3D-часть');
+      });
+    }
+  }
+
+  /* ---- Мини-игры: 30-минутный кулдаун (pxax_ai_games_v1) ---- */
+  var games = { reflexReadyAt: 0, runnerReadyAt: 0 };
+  try {
+    var storedGames = JSON.parse(storage.getItem(GAMES_KEY) || 'null');
+    if (storedGames && typeof storedGames === 'object') {
+      games.reflexReadyAt = Math.max(0, Number(storedGames.reflexReadyAt) || 0);
+      games.runnerReadyAt = Math.max(0, Number(storedGames.runnerReadyAt) || 0);
+    }
+  } catch (e) {}
+  function saveGames() {
+    try { storage.setItem(GAMES_KEY, JSON.stringify(games)); } catch (e) {}
+  }
+  function refreshGamesUI() {
+    var now = Date.now();
+    var pairs = [
+      { btn: $('game-reflex'), readyAt: games.reflexReadyAt, base: 'реакция · 5 раундов · до 20 ◈' },
+      { btn: $('game-runner'), readyAt: games.runnerReadyAt, base: 'раннер · 25 сек · до 30 ◈' }
+    ];
+    pairs.forEach(function (p) {
+      if (!p.btn) return;
+      var left = p.readyAt - now;
+      var small = p.btn.querySelector('small');
+      if (left > 0) {
+        p.btn.disabled = true;
+        p.btn.classList.add('cooling');
+        if (small) small.textContent = 'скоро: ' + clockText(left);
+      } else {
+        p.btn.disabled = false;
+        p.btn.classList.remove('cooling');
+        if (small && small.textContent.indexOf('скоро:') !== -1) small.textContent = p.base;
+      }
+    });
+  }
+
+  /* ---- 3D-доставка: курьер у двери ---- */
+  var pendingCourierTask = false;
+  function applyDelivery(foodId, silent) {
+    var food = FOOD.find(function (item) { return item.id === foodId; });
+    needs.pendingDelivery = null;
+    needs.pendingDeliverySince = 0;
+    if (!food) { saveNeeds(); return; }
+    needs.hunger = clampNeed(needs.hunger - food.hunger);
+    needs.thirst = clampNeed(needs.thirst - food.thirst);
+    counter('deliveries');
+    addXp(8);
+    touchCare();
+    if (!silent) toast(food.name + ' доставлен в комнату! 🍜');
+    if (window.pxaxQuests) {
+      var qf = window.pxaxQuests.track(storage, 'feed', 1);
+      if (qf.claimed) {
+        needs.credits += qf.reward;
+        toast('Квест: ' + qf.title + ' — +' + qf.reward + ' ◈ 🎉');
+      }
+    }
+    saveNeeds();
+    renderNeeds();
+  }
+  window.pxaxRoomTaskDone = function (kind) {
+    if (kind === 'delivery' && needs.pendingDelivery) applyDelivery(needs.pendingDelivery, false);
+  };
+
   function applyName() {
     var n = charName();
     var els = [
@@ -888,6 +1354,12 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     if (!input) { toast('Имя не может быть пустым'); return; }
     if (input === current) return;
     try { storage.setItem(CHARACTER.NAME_KEY, input); } catch (e) {}
+    if (!progress.named) {
+      progress.named = true;
+      saveProgress();
+      addMsg('bot', 'Теперь меня зовут ' + input + '! Спасибо, мне очень нравится. 🤍', true);
+      addXp(10);
+    }
     applyName();
     haptic('success');
     toast('Теперь её зовут ' + input);
@@ -931,6 +1403,9 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
       : 'Начать диалог';
     renderCareState();
     renderFoodShop();
+    renderXp();
+    renderMood();
+    refreshGamesUI();
   }
 
   function renderQuestsPanel() {
@@ -1036,7 +1511,13 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   function finishGame(result) {
     var reward = Math.max(0, result && result.reward || 0);
     needs.credits += reward;
+    games.reflexReadyAt = Date.now() + GAME_COOLDOWN_MS;
+    games.runnerReadyAt = Date.now() + GAME_COOLDOWN_MS;
+    saveGames();
     saveNeeds();
+    counter('games');
+    addXp(15);
+    touchCare();
     gameMeta.textContent = (result && result.total ? 'раунды: ' + result.score + '/' + result.total + ' · ' : '') +
       (result && result.distance ? 'дистанция: ' + result.distance + ' м · ' : '') +
       '+' + reward + ' ◈ зачислено';
@@ -1057,6 +1538,12 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
 
   function launchGame(kind, questId) {
     if (!window.pxaxGames || activeGame) return;
+    var nowTs = Date.now();
+    var readyKey = kind === 'reflex' ? 'reflexReadyAt' : 'runnerReadyAt';
+    if (nowTs < games[readyKey]) {
+      toast('Игра восстановится через ' + clockText(games[readyKey] - nowTs));
+      return;
+    }
     activeQuestId = questId;
     gameArea.hidden = false;
     gameMeta.textContent = 'тапни по канвасу, чтобы играть · крестик — закрыть';
@@ -1122,6 +1609,10 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
       var awaySeconds = Math.max(0.5, Math.min(needs.toiletDuration / 1000, (remaining - 6000) / 1000));
       toiletTaskStarted = window.pxaxRoom3d.act('toilet', { durationSeconds: awaySeconds });
     }
+    if (!needs.pendingDelivery) pendingCourierTask = false;
+    if (needs.pendingDelivery && !needs.sleepUntil && !needs.toiletUntil && !pendingCourierTask) {
+      pendingCourierTask = !!window.pxaxRoom3d.act('delivery');
+    }
   }
 
   function updateNeeds() {
@@ -1139,25 +1630,32 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     if (needs.delivery && now >= needs.delivery.dueAt) {
       var delivered = FOOD.find(function (item) { return item.id === needs.delivery.id; });
       if (delivered) {
-        needs.hunger = clampNeed(needs.hunger - delivered.hunger);
-        needs.thirst = clampNeed(needs.thirst - delivered.thirst);
-        toast(delivered.name + ' доставлен в комнату! 🍜');
-        if (window.pxaxQuests) {
-          var qf = window.pxaxQuests.track(storage, 'feed', 1);
-          if (qf.claimed) {
-            needs.credits += qf.reward;
-            toast('Квест: ' + qf.title + ' — +' + qf.reward + ' ◈ 🎉');
-          }
+        if (window.pxaxRoom3d && $('scene-loading').hidden && !needs.sleepUntil && !needs.toiletUntil) {
+          needs.pendingDelivery = delivered.id;
+          needs.pendingDeliverySince = now;
+          saveNeeds();
+          toast('Курьер у двери — ' + charName() + ' идёт открывать 🛵');
+        } else {
+          applyDelivery(delivered.id, false);
         }
       }
       needs.delivery = null;
+    }
+    if (needs.pendingDelivery && now - (needs.pendingDeliverySince || now) > 120000) {
+      applyDelivery(needs.pendingDelivery, true);
     }
     if (needs.sleepUntil && now >= needs.sleepUntil) {
       needs.sleepUntil = 0;
       needs.fatigue = Math.min(needs.fatigue, 12);
       sleepTaskStarted = false;
       if (window.pxaxRoom3d) window.pxaxRoom3d.wake();
-      toast('Ai проснулась и снова готова общаться ☀️');
+      counter('wakes');
+      burstConfetti();
+      var hourW = new Date(now).getHours();
+      var greetWord = hourW >= 5 && hourW < 12 ? 'Доброе утро' : hourW >= 12 && hourW < 18 ? 'Добрый день' : hourW >= 18 && hourW < 23 ? 'Добрый вечер' : 'Доброй ночи';
+      addMsg('bot', greetWord + '! Я выспалась и снова на связи. Что будем делать? ☀️');
+      toast(charName() + ' проснулась и снова готова общаться ☀️');
+      touchCare();
     }
     if (needs.toiletUntil && now >= needs.toiletUntil) {
       needs.toiletUntil = 0;
@@ -1207,6 +1705,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     chatEl.appendChild(div);
     chatEl.scrollTop = chatEl.scrollHeight;
     if (save) { history.push({ role: role, text: text, t: Date.now() }); saveHistory(); }
+    if (role === 'bot' && save) speakTTS(text);
     return div;
   }
   /* печать по словам + lip-sync у модели */
@@ -1218,6 +1717,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     var body = div.querySelector('.stream-body');
     var words = String(text).split(/(\s+)/);
     roomSpeakAnimation(words.length);
+    speakTTS(String(text));
     var i = 0;
     function step() {
       if (i >= words.length) {
@@ -1337,6 +1837,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
   }
 
   function addMsgWithActions(text, meta) {
+    speakTTS(text);
     var div = document.createElement('div');
     div.className = 'msg bot';
     div.innerHTML = '<div class="meta">' + CHARACTER.name + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
@@ -1431,6 +1932,9 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     autoSize();
     haptic('select');
     addMsg('user', text, true);
+    counter('messages');
+    touchCare();
+    addXp(4);
     if (window.pxaxQuests) {
       var qres = window.pxaxQuests.track(storage, 'chat3', 1);
       if (qres.claimed) {
@@ -1564,6 +2068,31 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
     var b = e.target.closest('[data-q]');
     if (b) send(b.getAttribute('data-q'));
   };
+
+  /* --- голос, настройки, запуск систем --- */
+  $('voice-toggle').addEventListener('click', function () {
+    voiceEnabled = !voiceEnabled;
+    try { storage.setItem(VOICE_KEY, voiceEnabled ? '1' : '0'); } catch (e) {}
+    refreshVoiceToggle();
+    if (!voiceEnabled && 'speechSynthesis' in window) {
+      try { speechSynthesis.cancel(); } catch (e) {}
+    }
+  });
+  refreshVoiceToggle();
+  if ('speechSynthesis' in window) {
+    pickRuVoice();
+    try {
+      speechSynthesis.onvoiceschanged = pickRuVoice;
+      if (speechSynthesis.getVoices && speechSynthesis.getVoices().length) pickRuVoice();
+    } catch (e) {}
+  }
+  renderWardrobe();
+  renderAch();
+  renderXp();
+  renderMood();
+  loadPredictions();
+  setInterval(loadPredictions, 10 * 60 * 1000);
+  setTimeout(function () { checkAchievements(); }, 1500);
 })();
 </script>
 <script type="module" src="./scene3d.js"></script>

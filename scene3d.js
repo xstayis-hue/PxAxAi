@@ -28,7 +28,8 @@ host.prepend(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 40);
 camera.position.set(0, 4.2, 8.4);
 camera.lookAt(0, 1.55, -0.2);
-scene.add(new THREE.HemisphereLight(0xc6d8ff, 0x161020, 2.05));
+const hemiLight = new THREE.HemisphereLight(0xc6d8ff, 0x161020, 2.05);
+scene.add(hemiLight);
 
 const keyLight = new THREE.DirectionalLight(0xf3eaff, 2.6);
 keyLight.position.set(-3.5, 6, 5);
@@ -98,26 +99,54 @@ function createRoom() {
   box(world, 'back-neon', trimViolet, [0, 3.88, -2.69], [4.75, 0.035, 0.025]);
 
   const windowX = -0.75;
-  box(world, 'window-glass', '#132a46', [windowX, 2.42, -2.67], [2.0, 1.36, 0.035], {
+  const windowGlass = box(world, 'window-glass', '#132a46', [windowX, 2.42, -2.67], [2.0, 1.36, 0.035], {
     emissive: '#12446c',
     emissiveIntensity: 0.42,
     metalness: 0.25,
     roughness: 0.25
   });
+  const cityMats = [];
   for (let i = 0; i < 6; i += 1) {
     const x = windowX - 0.88 + i * 0.34;
     const height = 0.36 + (i % 3) * 0.18;
-    box(world, `city-tower-${i}`, i % 2 ? '#27315b' : '#1d274c',
+    const tower = box(world, `city-tower-${i}`, i % 2 ? '#27315b' : '#1d274c',
       [x, 1.76 + height / 2, -2.63], [0.24, height, 0.035], {
         emissive: i % 2 ? '#263e83' : '#6b347f',
         emissiveIntensity: 0.55
       });
+    cityMats.push(tower.material);
   }
   box(world, 'window-frame-top', '#565078', [windowX, 3.12, -2.61], [2.12, 0.075, 0.12]);
   box(world, 'window-frame-bottom', '#565078', [windowX, 1.72, -2.61], [2.12, 0.075, 0.12]);
   box(world, 'window-frame-left', '#565078', [windowX - 1.03, 2.42, -2.61], [0.075, 1.4, 0.12]);
   box(world, 'window-frame-right', '#565078', [windowX + 1.03, 2.42, -2.61], [0.075, 1.4, 0.12]);
   box(world, 'window-crossbar', '#565078', [windowX, 2.42, -2.6], [0.04, 1.35, 0.11]);
+
+  const starCount = 64;
+  const starPositions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i += 1) {
+    starPositions[i * 3] = windowX - 0.95 + Math.random() * 1.9;
+    starPositions[i * 3 + 1] = 1.86 + Math.random() * 1.18;
+    starPositions[i * 3 + 2] = -2.652;
+  }
+  const starGeometry = new THREE.BufferGeometry();
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({
+    color: '#dfe8ff',
+    size: 0.018,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false
+  }));
+  stars.name = 'sky-stars';
+  world.add(stars);
+  const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(0.115, 16, 12),
+    new THREE.MeshBasicMaterial({ color: '#eef1ff', transparent: true, opacity: 0 })
+  );
+  moon.name = 'sky-moon';
+  moon.position.set(windowX + 0.62, 2.9, -2.648);
+  world.add(moon);
 
   const bed = new THREE.Group();
   bed.position.set(-1.47, 0, 0.18);
@@ -207,6 +236,17 @@ function createRoom() {
     world.add(leaf);
   }
 
+  const deliveryBox = new THREE.Group();
+  deliveryBox.name = 'delivery-box';
+  box(deliveryBox, 'pkg-body', '#caa2ff', [0, 0, 0], [0.22, 0.15, 0.16], { roughness: 0.55 });
+  box(deliveryBox, 'pkg-tape', '#5ce1f1', [0, 0, 0], [0.235, 0.05, 0.05], {
+    emissive: '#179cb2',
+    emissiveIntensity: 0.9
+  });
+  deliveryBox.position.set(1.58, 0.08, -2.22);
+  deliveryBox.visible = false;
+  world.add(deliveryBox);
+
   const hotspots = {
     bed: new THREE.Vector3(-1.5, 0.95, 0.12),
     desk: new THREE.Vector3(1.47, 1.35, -0.3),
@@ -218,7 +258,7 @@ function createRoom() {
       window.pxaxRoomAction(button.dataset.roomAction, false);
     });
   }
-  return { bed, desk, doorPivot, hotspots, buttons };
+  return { bed, desk, doorPivot, hotspots, buttons, windowGlass, cityMats, stars, moon, deliveryBox };
 }
 
 const room = createRoom();
@@ -403,6 +443,103 @@ function reportError(error) {
   setRoomStatus('Ошибка загрузки 3D-сцены');
 }
 
+/* --- день/ночь в комнате --- */
+const DAY_LIGHTS = {
+  bg: new THREE.Color('#090916'),
+  hemiSky: new THREE.Color('#c6d8ff'),
+  hemiGround: new THREE.Color('#161020'),
+  hemiIntensity: 2.05,
+  keyColor: new THREE.Color('#f3eaff'),
+  keyIntensity: 2.6,
+  violet: 14,
+  cyan: 11,
+  glass: 0.42,
+  city: 0.55,
+  sky: 0
+};
+const NIGHT_LIGHTS = {
+  bg: new THREE.Color('#04040b'),
+  hemiSky: new THREE.Color('#232a52'),
+  hemiGround: new THREE.Color('#0c0a16'),
+  hemiIntensity: 0.85,
+  keyColor: new THREE.Color('#39406e'),
+  keyIntensity: 0.55,
+  violet: 19,
+  cyan: 15,
+  glass: 0.14,
+  city: 1.05,
+  sky: 0.95
+};
+let dayNight = 0.5;
+let dayNightTarget = 0.5;
+let dayNightNeedsApply = true;
+function dayNightFactor(hour) {
+  if (hour >= 22 || hour < 5) return 1;
+  if (hour >= 19) return (hour - 19) / 3;
+  if (hour < 8) return (8 - hour) / 3;
+  return 0;
+}
+function setHour(hour) {
+  dayNightTarget = dayNightFactor(Number(hour) || 0);
+  dayNightNeedsApply = true;
+}
+function applyDayNight(delta) {
+  if (!dayNightNeedsApply) return;
+  const diff = dayNightTarget - dayNight;
+  if (Math.abs(diff) < 0.002) {
+    dayNight = dayNightTarget;
+    dayNightNeedsApply = false;
+  } else {
+    dayNight += diff * Math.min(1, delta * 0.45);
+  }
+  const t = dayNight;
+  scene.background.copy(DAY_LIGHTS.bg).lerp(NIGHT_LIGHTS.bg, t);
+  scene.fog.color.copy(scene.background);
+  hemiLight.color.copy(DAY_LIGHTS.hemiSky).lerp(NIGHT_LIGHTS.hemiSky, t);
+  hemiLight.groundColor.copy(DAY_LIGHTS.hemiGround).lerp(NIGHT_LIGHTS.hemiGround, t);
+  hemiLight.intensity = THREE.MathUtils.lerp(DAY_LIGHTS.hemiIntensity, NIGHT_LIGHTS.hemiIntensity, t);
+  keyLight.color.copy(DAY_LIGHTS.keyColor).lerp(NIGHT_LIGHTS.keyColor, t);
+  keyLight.intensity = THREE.MathUtils.lerp(DAY_LIGHTS.keyIntensity, NIGHT_LIGHTS.keyIntensity, t);
+  violetLight.intensity = THREE.MathUtils.lerp(DAY_LIGHTS.violet, NIGHT_LIGHTS.violet, t);
+  cyanLight.intensity = THREE.MathUtils.lerp(DAY_LIGHTS.cyan, NIGHT_LIGHTS.cyan, t);
+  room.windowGlass.material.emissiveIntensity = THREE.MathUtils.lerp(DAY_LIGHTS.glass, NIGHT_LIGHTS.glass, t);
+  for (const mat of room.cityMats) {
+    mat.emissiveIntensity = THREE.MathUtils.lerp(DAY_LIGHTS.city, NIGHT_LIGHTS.city, t);
+  }
+  const skyOpacity = THREE.MathUtils.lerp(DAY_LIGHTS.sky, NIGHT_LIGHTS.sky, t);
+  room.stars.material.opacity = skyOpacity;
+  room.moon.material.opacity = skyOpacity * 0.95;
+}
+
+/* --- настроение: лёгкая idle-анимация --- */
+let moodKey = '';
+function setMood(key) {
+  moodKey = String(key || '');
+}
+function applyMoodIdle(elapsed) {
+  if (!posePivot || task) return;
+  if (currentActionName !== 'Idle_Loop') return;
+  const t = elapsed;
+  let rx = 0;
+  let ry = 0;
+  let rz = 0;
+  if (moodKey === 'tired') {
+    rx = 0.05;
+  } else if (moodKey === 'lonely') {
+    rz = Math.sin(t * 0.6) * 0.022 - 0.02;
+    ry = 0.03;
+  } else if (moodKey === 'happy') {
+    ry = Math.sin(t * 1.1) * 0.045;
+  } else if (moodKey === 'hungry') {
+    rx = Math.abs(Math.sin(t * 1.6)) * 0.05;
+  }
+  posePivot.rotation.x += (rx - posePivot.rotation.x) * 0.08;
+  posePivot.rotation.y += (ry - posePivot.rotation.y) * 0.08;
+  posePivot.rotation.z += (rz - posePivot.rotation.z) * 0.08;
+}
+
+let widgetAnchorOn = false;
+
 function scheduleWander() {
   window.clearTimeout(autoTimer);
   autoTimer = window.setTimeout(() => {
@@ -452,7 +589,7 @@ function findSkinnedMeshes(root) {
   return meshes;
 }
 
-function addRiggedPart(baseRoot, baseBones, gltf, tint, glow) {
+function addRiggedPart(baseRoot, baseBones, gltf, tint, glow, partKey) {
   const partRoot = gltf.scene;
   partRoot.updateMatrixWorld(true);
   baseRoot.updateMatrixWorld(true);
@@ -486,7 +623,89 @@ function addRiggedPart(baseRoot, baseBones, gltf, tint, glow) {
     mesh.frustumCulled = false;
     baseRoot.add(mesh);
     characterParts.push(mesh);
+    if (partKey && Array.isArray(wornParts[partKey])) wornParts[partKey].push(mesh);
   }
+}
+
+/* --- гардероб: смена образа и причёски --- */
+const WARD = {
+  outfit: {
+    peasant: { src: () => assetUrl('Female_Peasant.glb'), tint: '#b09aff', glow: '#301256' },
+    ranger: {
+      src: () => 'https://raw.githubusercontent.com/Dallolz/moorfall-assets/main/outfits/Female_Ranger.glb',
+      tint: '#a78bff',
+      glow: '#2c2450'
+    }
+  },
+  hair: {
+    long: { src: () => assetUrl('Hair_Long.glb'), tint: '#7852bf', glow: '#34135b' },
+    buns: { src: () => 'https://raw.githubusercontent.com/Dallolz/moorfall-assets/main/hair/Hair_Buns.glb', tint: '#ffffff', glow: null },
+    parted: { src: () => 'https://raw.githubusercontent.com/Dallolz/moorfall-assets/main/hair/Hair_SimpleParted.glb', tint: '#ffffff', glow: null },
+    buzz: { src: () => 'https://raw.githubusercontent.com/Dallolz/moorfall-assets/main/hair/Hair_BuzzedFemale.glb', tint: '#ffffff', glow: null }
+  }
+};
+const wornParts = { outfit: [], hair: [] };
+let wardrobeKeys = { outfit: 'peasant', hair: 'long' };
+try {
+  const storedWardrobe = JSON.parse(window.localStorage.getItem('pxax_ai_wardrobe_v1') || 'null');
+  if (storedWardrobe && typeof storedWardrobe === 'object') {
+    wardrobeKeys = {
+      outfit: storedWardrobe.outfit === 'ranger' ? 'ranger' : 'peasant',
+      hair: WARD.hair[storedWardrobe.hair] ? storedWardrobe.hair : 'long'
+    };
+  }
+} catch (e) {
+  wardrobeKeys = { outfit: 'peasant', hair: 'long' };
+}
+
+function removeWornPart(partKey) {
+  for (const mesh of wornParts[partKey] || []) {
+    mesh.parent?.remove(mesh);
+    if (Array.isArray(mesh.material)) mesh.material.forEach((item) => item.dispose());
+    else if (mesh.material) mesh.material.dispose();
+  }
+  wornParts[partKey] = [];
+}
+
+function loadWardPart(partKey, key) {
+  const def = WARD[partKey] && WARD[partKey][key];
+  if (!def) return Promise.reject(new Error('Unknown wardrobe item: ' + key));
+  return new Promise((resolve, reject) => {
+    loader.load(def.src(), resolve, undefined, reject);
+  }).then((gltf) => {
+    removeWornPart(partKey);
+    addRiggedPart(characterRoot, characterBones, gltf, def.tint, def.glow, partKey);
+  });
+}
+
+function setWardrobe(partKey, key) {
+  if (!rendererReady || !WARD[partKey] || !WARD[partKey][key]) return Promise.resolve(false);
+  if (wardrobeKeys[partKey] === key) return Promise.resolve(true);
+  return loadWardPart(partKey, key).then(() => {
+    wardrobeKeys[partKey] = key;
+    return true;
+  });
+}
+
+function attachDeliveryBox(attach) {
+  const deliveryBox = room.deliveryBox;
+  if (!deliveryBox) return;
+  if (attach) {
+    const hand = characterBones.get('hand_r') || characterBones.get('hand_01');
+    if (hand) {
+      hand.add(deliveryBox);
+      deliveryBox.position.set(0.02, -0.05, 0.12);
+      deliveryBox.rotation.set(0, 0.3, 0);
+      deliveryBox.userData.attachedTo = hand;
+      return;
+    }
+  }
+  if (deliveryBox.userData.attachedTo) {
+    deliveryBox.userData.attachedTo.remove(deliveryBox);
+    delete deliveryBox.userData.attachedTo;
+  }
+  deliveryBox.position.set(1.58, 0.08, -2.22);
+  deliveryBox.rotation.set(0, 0.4, 0);
 }
 
 function makeTask(action, options = {}) {
@@ -501,7 +720,8 @@ function makeTask(action, options = {}) {
     sleep: new THREE.Vector3(-0.5, 0, 1.55),
     desk: new THREE.Vector3(1.15, 0, 0.38),
     door: new THREE.Vector3(1.5, 0, -1.55),
-    toilet: new THREE.Vector3(1.5, 0, -1.55)
+    toilet: new THREE.Vector3(1.5, 0, -1.55),
+    delivery: new THREE.Vector3(1.5, 0, -1.55)
   };
   routeTargets = findPath(characterRoot.position, taskPositions[action]);
   if (!routeTargets) {
@@ -512,7 +732,8 @@ function makeTask(action, options = {}) {
   }
   targetPosition = routeTargets.shift();
   setRoomStatus(
-    action === 'bed' ? 'Идёт отдохнуть' : action === 'desk' ? 'Идёт к ноутбуку' : 'Идёт к двери',
+    action === 'bed' ? 'Идёт отдохнуть' : action === 'desk' ? 'Идёт к ноутбуку'
+      : action === 'delivery' ? 'Идёт к двери за посылкой' : 'Идёт к двери',
     true
   );
   actionLoop('Walk_Loop');
@@ -520,6 +741,7 @@ function makeTask(action, options = {}) {
 }
 
 function finishTask() {
+  const done = task;
   task = null;
   taskPhase = '';
   targetPosition = null;
@@ -530,9 +752,14 @@ function finishTask() {
   if (characterRoot) characterRoot.position.y = 0;
   room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation;
   if (characterRoot) characterRoot.visible = true;
+  widgetAnchorOn = false;
+  window.pxaxLaptopWidget?.(false);
+  attachDeliveryBox(false);
+  if (room.deliveryBox) room.deliveryBox.visible = false;
   actionLoop('Idle_Loop');
   const hour = new Date().getHours();
   setRoomStatus(hour >= 23 || hour < 7 ? 'В комнате тихая ночь' : 'Осматривает комнату');
+  if (done === 'delivery') window.pxaxRoomTaskDone?.('delivery');
 }
 
 function walkTo(position, phase) {
@@ -565,8 +792,19 @@ function arriveAtTask() {
   if (task === 'desk') {
     taskPhase = 'desk-use';
     actionLoop('Interact');
-    phaseTimer = 6.5;
+    phaseTimer = 15 + Math.random() * 15;
     setRoomStatus('Работает за ноутбуком', true);
+    widgetAnchorOn = true;
+    window.pxaxLaptopWidget?.(true);
+    return;
+  }
+  if (task === 'delivery') {
+    taskPhase = 'delivery-door';
+    actionLoop('Interact');
+    phaseTimer = 1.7;
+    room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation - 1.1;
+    if (room.deliveryBox) room.deliveryBox.visible = true;
+    setRoomStatus('Получает посылку', true);
     return;
   }
   if (task === 'door' || task === 'toilet') {
@@ -665,6 +903,14 @@ function updateTask(delta) {
     if (leftHand) leftHand.rotation.x += typing;
     if (rightHand) rightHand.rotation.x -= typing;
     if (phaseTimer <= 0) walkTo(new THREE.Vector3(0, 0, 1.2), 'return');
+  } else if (taskPhase === 'delivery-door') {
+    phaseTimer -= delta;
+    if (phaseTimer <= 0) {
+      taskPhase = 'delivery-carry';
+      attachDeliveryBox(true);
+      setRoomStatus('Несёт посылку', true);
+      walkTo(new THREE.Vector3(0, 0, 1.2), 'return');
+    }
   } else if (taskPhase === 'door-use') {
     phaseTimer -= delta;
     if (phaseTimer <= 0) {
@@ -704,6 +950,13 @@ function positionHotspots() {
     button.hidden = hidden;
     button.disabled = disabled;
   }
+  if (widgetAnchorOn) {
+    const point = room.hotspots.desk.clone().project(camera);
+    const visible = mode === 'room' && point.z > -1 && point.z < 1;
+    const x = THREE.MathUtils.clamp((point.x * 0.5 + 0.5) * host.clientWidth, 84, host.clientWidth - 84);
+    const y = THREE.MathUtils.clamp((-point.y * 0.5 + 0.5) * host.clientHeight, 64, host.clientHeight - 28);
+    window.pxaxRoomWidget?.(x, y, visible);
+  }
 }
 
 function onPointerUp(event) {
@@ -739,8 +992,10 @@ function animate() {
     return;
   }
   const delta = Math.min(clock.getDelta(), 0.05);
+  applyDayNight(delta);
   if (mixer) mixer.update(delta);
   updateTask(delta);
+  applyMoodIdle(clock.elapsedTime);
   positionHotspots();
   renderer.render(scene, camera);
 }
@@ -787,8 +1042,14 @@ async function initialize() {
   if (!skinnedMeshes.length) throw new Error('Female character model has no skin rig');
   const baseBones = new Map(skinnedMeshes[0].skeleton.bones.map((bone) => [bone.name, bone]));
   characterParts = skinnedMeshes;
-  addRiggedPart(characterRoot, baseBones, outfit, '#b09aff', '#301256');
-  addRiggedPart(characterRoot, baseBones, hair, '#7852bf', '#34135b');
+  addRiggedPart(characterRoot, baseBones, outfit, '#b09aff', '#301256', 'outfit');
+  addRiggedPart(characterRoot, baseBones, hair, '#7852bf', '#34135b', 'hair');
+  if (wardrobeKeys.outfit !== 'peasant') {
+    loadWardPart('outfit', wardrobeKeys.outfit).catch((error) => console.warn('Wardrobe outfit failed:', error));
+  }
+  if (wardrobeKeys.hair !== 'long') {
+    loadWardPart('hair', wardrobeKeys.hair).catch((error) => console.warn('Wardrobe hair failed:', error));
+  }
 
   const avatarRig = characterRoot;
   const bounds = new THREE.Box3().setFromObject(avatarRig);
@@ -839,6 +1100,7 @@ async function initialize() {
   actionLoop('Idle_Loop');
   loadingLabel.hidden = true;
   rendererReady = true;
+  setHour(new Date().getHours());
   setRoomStatus('Осматривает комнату');
   frameId = requestAnimationFrame(animate);
   scheduleWander();
@@ -850,7 +1112,7 @@ window.pxaxRoom3d = {
       window.pxaxRoomToast?.('3D-комната ещё загружается…');
       return false;
     }
-    if (!['bed', 'sleep', 'desk', 'door', 'toilet'].includes(action)) return false;
+    if (!['bed', 'sleep', 'desk', 'door', 'toilet', 'delivery'].includes(action)) return false;
     return makeTask(action, options || {});
   },
   wake() {
@@ -859,6 +1121,9 @@ window.pxaxRoom3d = {
     else wakeRequested = true;
   },
   setMode,
+  setHour,
+  setMood,
+  setWardrobe,
   emote,
   speak
 };
