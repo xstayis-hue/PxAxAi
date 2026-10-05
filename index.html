@@ -33,7 +33,7 @@ body::before{
 #net,#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
 #net{opacity:.3}#fx{opacity:.45}
 #room3d{
-  position:fixed;z-index:1;left:50%;top:0;bottom:calc(330px + env(safe-area-inset-bottom));
+  position:fixed;z-index:1;left:50%;top:0;bottom:calc(236px + env(safe-area-inset-bottom));
   width:min(100vw,480px);transform:translateX(-50%);overflow:hidden;touch-action:pan-y;
   transition:opacity .3s ease;
 }
@@ -88,47 +88,62 @@ body::before{
 }
 #home.hidden{display:none}
 #home>*{pointer-events:auto}
-.home-top{position:absolute;top:calc(14px + env(safe-area-inset-top));left:0;right:0}
-.home-title{font-size:22px;font-weight:700;letter-spacing:3px;color:#efeaff}
-.home-sub{font-size:11px;color:var(--mute);margin-top:2px;letter-spacing:1.5px}
+.home-top{position:absolute;top:calc(12px + env(safe-area-inset-top));left:0;right:0;padding:0 12px}
+.home-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.home-id{text-align:left;min-width:0}
+.home-title{display:block;font-size:19px;font-weight:700;letter-spacing:1.5px;color:#efeaff;line-height:1.1}
+.home-sub{display:block;font-size:9px;color:var(--mute);margin-top:1px;letter-spacing:1.4px;text-transform:uppercase}
+.home-badge-row{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.home-strip{display:flex;align-items:center;gap:6px;margin-top:8px;min-width:0}
 .home-status{
-  display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--b);
-  padding:5px 12px;border-radius:20px;border:1px solid rgba(92,225,230,.2);
-  background:rgba(10,12,24,.55);backdrop-filter:blur(8px);
+  display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--b);
+  padding:4px 9px;border-radius:20px;border:1px solid rgba(92,225,230,.2);
+  background:rgba(10,12,24,.55);backdrop-filter:blur(8px);white-space:nowrap;
 }
-.home-status .d{width:6px;height:6px;border-radius:50%;background:var(--b);box-shadow:0 0 8px var(--b);animation:blink 1.8s ease-in-out infinite}
+.home-status .d{width:5px;height:5px;border-radius:50%;background:var(--b);box-shadow:0 0 8px var(--b);animation:blink 1.8s ease-in-out infinite}
 .home-status.off .d{background:#ff6868;box-shadow:0 0 8px #ff6868}
 .home-status.off{color:#ff9c9c;border-color:rgba(255,104,104,.25)}
+/* пока связи нет — приглушённый янтарный, а не красная тревога */
+.home-status.wait .d{background:#ffcd68;box-shadow:0 0 8px #ffcd68}
+.home-status.wait{color:#e6cf9a;border-color:rgba(255,205,104,.22)}
 @keyframes blink{50%{opacity:.35}}
-.home-badge-row{
-  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
-  margin-top:8px;width:100%;padding:0 10px;
-}
 .room-meta{
-  display:inline-flex;align-items:center;gap:8px;padding:6px 11px;border-radius:20px;
+  display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:20px;
   color:#d8d2f1;background:rgba(10,9,22,.62);border:1px solid rgba(140,120,255,.2);
-  backdrop-filter:blur(9px);font-size:11px;white-space:nowrap;
+  backdrop-filter:blur(9px);font-size:10px;white-space:nowrap;min-width:0;flex:0 1 auto;
 }
 .room-meta strong{color:var(--b);font-variant-numeric:tabular-nums}
-.room-meta span:last-child{color:#a29ab9}
-.home-actions{width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px}
-.needs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 10px;width:100%;padding:9px 11px;border:1px solid rgba(140,120,255,.18);border-radius:14px;background:rgba(8,8,20,.76);backdrop-filter:blur(10px);text-align:left}
+.room-meta span:last-child{color:#a29ab9;overflow:hidden;text-overflow:ellipsis}
+.home-xp{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;
+  background:rgba(10,9,22,.55);border:1px solid rgba(140,120,255,.14);
+  font-size:9px;color:#8f88a8;white-space:nowrap;letter-spacing:.2px;flex:0 0 auto;
+}
+.home-xp strong{color:var(--a);font-weight:700}
+.home-xp span:last-child{color:#89f0e6}
+.home-actions{width:100%;max-width:340px;display:flex;flex-direction:column;gap:8px}
+/* потребности: компактная полоса из 4 мини-шкал вместо крупного блока */
+.needs-grid{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;max-width:340px;margin:0 auto;
+  padding:8px 11px;border:1px solid rgba(140,120,255,.16);border-radius:13px;
+  background:rgba(8,8,20,.72);backdrop-filter:blur(10px);text-align:center;
+}
 .needs-grid{order:0}
 .home-actions{order:1}
 .care-open{order:2}
 .home-hint{order:3}
-.need-item{min-width:0;display:grid;grid-template-columns:1fr auto;gap:4px 7px;align-items:center;font-size:9px;color:#b8b2cf}
-.need-item strong{font-size:9px;font-weight:600;white-space:nowrap}
-.need-item output{font-size:9px;color:#e5e0f4;font-variant-numeric:tabular-nums}
-.need-track{grid-column:1/-1;height:4px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
+.need-item{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:3px;align-items:center;font-size:10px;color:#b8b2cf}
+.need-item strong{font-size:10px;font-weight:600;white-space:nowrap;letter-spacing:.1px}
+.need-item output{font-size:10.5px;color:#e5e0f4;font-variant-numeric:tabular-nums}
+.need-track{width:100%;height:5px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
 .need-fill{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#61e3e7,#a078ff);transition:width .3s,background .3s}
 .need-fill.warn{background:linear-gradient(90deg,#ffcd68,#ff748c)}
 .care-open,.chat-care{border:1px solid rgba(92,225,230,.25);border-radius:11px;background:rgba(12,20,32,.88);color:#baf8f5;font:600 12px/1.2 system-ui,sans-serif;cursor:pointer}
-.care-open{width:100%;padding:10px;margin-top:14px}
+.care-open{width:100%;max-width:340px;margin:10px auto 0;padding:10px}
 .care-open:disabled,.chat-care:disabled{opacity:.6;cursor:default}
 .home-apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
 .btn-main{
-  width:100%;padding:16px;border:none;border-radius:14px;font-family:inherit;
+  width:100%;padding:14px;border:none;border-radius:14px;font-family:inherit;
   font-size:15px;font-weight:650;cursor:pointer;color:#fff;
   background:linear-gradient(135deg,var(--a),#6b8cff);box-shadow:0 6px 24px var(--glow);
   transition:transform .12s ease;
@@ -148,10 +163,11 @@ body::before{
 .btn-apps.coin .app-icon{color:#ffd27a}
 .btn-apps.vpn .app-icon{color:#65e8ef}
 .btn-apps .glitch-title{
-  font-size:clamp(11px,3.1vw,14px);font-weight:900;letter-spacing:1.2px;text-transform:uppercase;line-height:1.15;
+  font-size:clamp(10px,2.7vw,13px);font-weight:900;letter-spacing:.6px;text-transform:uppercase;line-height:1.15;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   color:#fff;font-family:Impact,'Arial Black',system-ui,sans-serif;
-  text-shadow:0 0 6px #ff00aa,0 0 14px rgba(255,0,170,.7),0 0 28px rgba(0,255,255,.35),
-    2px 0 0 rgba(255,0,100,.5),-2px 0 0 rgba(0,255,255,.4);
+  text-shadow:0 0 6px #ff00aa,0 0 14px rgba(255,0,170,.7),0 0 22px rgba(0,255,255,.35),
+    1px 0 0 rgba(255,0,100,.5),-1px 0 0 rgba(0,255,255,.4);
   animation:title-blink 1.6s steps(1) infinite;
 }
 @keyframes title-blink{0%,42%{opacity:1}43%{opacity:.25}44%,86%{opacity:1}87%{opacity:.4}88%,100%{opacity:1}}
@@ -161,7 +177,7 @@ body::before{
 .btn-apps.coin .glitch-sub.t-down{color:rgba(255,116,140,.85)}
 .btn-apps.coin .glitch-sub.t-load{animation:blink-sub 1.4s steps(2) infinite}
 @keyframes blink-sub{50%{opacity:.35}}
-.home-hint{margin-top:8px;font-size:10px;color:var(--mute);line-height:1.35;max-width:300px}
+.home-hint{margin-top:6px;font-size:10.5px;color:#8a84a0;line-height:1.35;max-width:340px}
 /* ===== CHAT ===== */
 #chat-view{display:none;flex-direction:column;height:100%;padding:0 12px;padding-top:max(8px,env(safe-area-inset-top));position:relative;z-index:2;pointer-events:auto}
 #chat-view.open{display:flex}
@@ -301,19 +317,12 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
 
 /* voice toggle */
 .voice-toggle{
-  width:34px;height:34px;border-radius:50%;border:1px solid rgba(92,225,230,.3);
-  background:rgba(10,12,24,.55);color:#baf4f8;font-size:15px;cursor:pointer;
+  width:30px;height:30px;border-radius:50%;border:1px solid rgba(92,225,230,.3);
+  background:rgba(10,12,24,.55);color:#baf4f8;font-size:13px;cursor:pointer;
   backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:0;
   flex:0 0 auto;
 }
 .voice-toggle.off{opacity:.5;color:#8a84a0;border-color:rgba(140,120,255,.2)}
-.home-xp{
-  display:flex;align-items:center;gap:7px;margin-top:8px;padding:5px 10px;border-radius:12px;
-  background:rgba(10,9,22,.55);border:1px solid rgba(140,120,255,.14);
-  font-size:9px;color:#8f88a8;white-space:nowrap;letter-spacing:.3px;width:fit-content;margin-left:auto;margin-right:auto;
-}
-.home-xp strong{color:var(--a);font-weight:700}
-.home-xp span:last-child{color:#89f0e6}
 
 /* laptop predictions widget */
 #laptop-widget{
@@ -353,13 +362,6 @@ body.chat-open #laptop-widget{display:none}
 .promo-row input{flex:1;min-width:0;padding:8px 10px;background:rgba(12,12,24,.8);border:1px solid rgba(123,240,178,.35);border-radius:9px;color:#cfe8dd;font:12px system-ui;outline:none}
 .promo-row input:focus{border-color:rgba(123,240,178,.7)}
 .promo-row button{padding:8px 14px;background:rgba(123,240,178,.12);border:1px solid rgba(123,240,178,.45);color:#7bf0b2;border-radius:9px;font:600 12px system-ui;cursor:pointer}
-#photo-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);font-size:14px;min-width:34px}
-#photo-studio{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;padding:16px}
-#photo-studio[hidden]{display:none}
-.photo-box{width:100%;max-width:380px;background:#0a0a14;border:1px solid rgba(123,240,178,.35);border-radius:14px;overflow:hidden}
-#photo-img{width:100%;display:block;background:#000}
-.photo-actions{display:flex;gap:8px;padding:10px}
-.photo-actions button{flex:1;padding:9px;background:rgba(123,240,178,.1);border:1px solid rgba(123,240,178,.4);color:#9dffc4;border-radius:8px;font:600 12px system-ui;cursor:pointer}
 </style>
 </head>
 <body>
@@ -384,15 +386,20 @@ body.chat-open #laptop-widget{display:none}
 <div class="wrap">
   <section id="home">
     <div class="home-top">
-      <div class="home-title" id="char-name">Nova</div>
-      <div class="home-sub">PXAX · neural agent</div>
-      <div class="home-badge-row">
-        <div class="home-status off" id="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
-        <div class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></div>
-        <button type="button" class="voice-toggle off" id="voice-toggle" aria-label="Голос компаньона: вкл/выкл" aria-pressed="true">🔊</button>
-        <button type="button" class="voice-toggle" id="photo-btn" aria-label="Сделать фото комнаты">📸</button>
+      <div class="home-head">
+        <div class="home-id">
+          <span class="home-title" id="char-name">Nova</span>
+          <span class="home-sub">neural agent</span>
+        </div>
+        <div class="home-badge-row">
+          <div class="home-status wait" id="home-status" title="Связь с сервером"><span class="d"></span><span id="mode-label">подключаюсь…</span></div>
+          <button type="button" class="voice-toggle off" id="voice-toggle" aria-label="Голос компаньона: вкл/выкл" aria-pressed="true">🔊</button>
+        </div>
       </div>
-      <div class="home-xp"><strong id="home-level">Уровень 1 · 0/100 XP</strong><span>·</span><span id="home-mood">любопытная</span></div>
+      <div class="home-strip">
+        <span class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></span>
+        <span class="home-xp"><strong id="home-level">Ур. 1</strong><span>·</span><span id="home-mood">любопытная</span></span>
+      </div>
     </div>
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
@@ -404,7 +411,7 @@ body.chat-open #laptop-widget{display:none}
         </button>
         <button type="button" class="btn-apps" id="btn-apps" aria-label="Открыть AI-прогнозы">
           <span class="app-icon" aria-hidden="true">✦</span>
-          <span class="glitch-title">PXAXBET2016</span>
+          <span class="glitch-title">PXAXBET</span>
           <span class="glitch-sub">AI-Прогнозы</span>
         </button>
         <button type="button" class="btn-apps coin" id="btn-coin" aria-label="Открыть VibeCoin">
@@ -417,11 +424,11 @@ body.chat-open #laptop-widget{display:none}
     <div class="needs-grid" id="needs-grid">
       <div class="need-item"><strong>Голод</strong><output id="need-hunger-value">—</output><span class="need-track"><span class="need-fill" id="need-hunger"></span></span></div>
       <div class="need-item"><strong>Жажда</strong><output id="need-thirst-value">—</output><span class="need-track"><span class="need-fill" id="need-thirst"></span></span></div>
-      <div class="need-item"><strong>Усталость</strong><output id="need-fatigue-value">—</output><span class="need-track"><span class="need-fill" id="need-fatigue"></span></span></div>
-      <div class="need-item"><strong>В туалет</strong><output id="need-toilet-value">—</output><span class="need-track"><span class="need-fill" id="need-toilet"></span></span></div>
+      <div class="need-item"><strong>Устал.</strong><output id="need-fatigue-value">—</output><span class="need-track"><span class="need-fill" id="need-fatigue"></span></span></div>
+      <div class="need-item"><strong>Туалет</strong><output id="need-toilet-value">—</output><span class="need-track"><span class="need-fill" id="need-toilet"></span></span></div>
     </div>
     <button type="button" class="care-open" id="care-open">Уход · <span id="home-balance">20</span> ◈</button>
-    <p class="home-hint">Тапни кровать, ноутбук или дверь.<br>Или напиши: «иди к ноутбуку», «ложись спать».</p>
+    <p class="home-hint">Тапни кровать, ноутбук или дверь — или напиши «ложись спать».</p>
   </section>
   <section id="chat-view">
     <div class="chat-top">
@@ -488,16 +495,6 @@ body.chat-open #laptop-widget{display:none}
   </section>
 </div>
 <div id="toast"></div>
-<div id="photo-studio" hidden>
-  <div class="photo-box">
-    <img id="photo-img" alt="Кадр комнаты компаньона">
-    <div class="photo-actions">
-      <button type="button" id="photo-share">Поделиться</button>
-      <button type="button" id="photo-download">Скачать</button>
-      <button type="button" id="photo-close">Закрыть</button>
-    </div>
-  </div>
-</div>
 
   <script src="./js/perf.js"></script>
   <script src="./js/games.js"></script>
@@ -807,9 +804,11 @@ body.chat-open #laptop-widget{display:none}
   }
 
   function setApiStatus(online) {
-    modeLabel.textContent = online ? 'online · workers ai' : 'offline · local mode';
-    chatStatus.textContent = online ? 'online · ' + CHARACTER.name + ' @' + CHARACTER.bot : 'local mode';
+    modeLabel.textContent = online ? 'на связи' : 'офлайн · локальный режим';
+    chatStatus.textContent = online ? 'на связи · ' + charName() + ' @' + CHARACTER.bot : 'локальный режим';
     homeStatus.classList.toggle('off', !online);
+    homeStatus.classList.remove('wait');
+    homeStatus.title = online ? 'Сервер PXAX доступен' : 'Нет связи с сервером — отвечаю шаблонами';
   }
   function ping() { xhrGet(CFG.AI_API_URL, 10000, function (ok) { setApiStatus(!!ok); }); }
   ping();
@@ -1014,7 +1013,7 @@ body.chat-open #laptop-widget{display:none}
     var base = Math.pow(l - 1, 2.5) * 100;
     var next = Math.pow(l, 2.5) * 100;
     var el = $('home-level');
-    if (el) el.textContent = 'Уровень ' + l + ' · ' + Math.floor(progress.xp - base) + '/' + Math.round(next - base) + ' XP';
+    if (el) el.textContent = 'Ур. ' + l + ' · ' + Math.floor(progress.xp - base) + '/' + Math.round(next - base) + ' XP';
   }
   function touchCare() {
     progress.counters.lastCare = Date.now();
@@ -1422,7 +1421,6 @@ body.chat-open #laptop-widget{display:none}
       renderAch();
       renderXp();
       applyName();
-      toast('☁️ Прогресс восстановлен из облака PXAX');
     }
   }
   function cloudPull() {
@@ -2388,57 +2386,7 @@ body.chat-open #laptop-widget{display:none}
     toast('Открой бота и нажми Start — готово 🔔');
   });
 
-  /* --- фото-студия (кадр 3D-комнаты) --- */
-  var photoUrl = '';
-  function openPhotoStudio(url) {
-    photoUrl = url;
-    var img = $('photo-img');
-    if (img) img.src = url;
-    var ps = $('photo-studio');
-    if (ps) ps.hidden = false;
-  }
-  function closePhotoStudio() {
-    var ps = $('photo-studio');
-    if (ps) ps.hidden = true;
-    photoUrl = '';
-  }
-  function downloadPhoto() {
-    if (!photoUrl) return;
-    var a = document.createElement('a');
-    a.href = photoUrl;
-    a.download = 'pxax-nova.png';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
-  function sharePhoto() {
-    if (!photoUrl) return;
-    var done = false;
-    fetch(photoUrl).then(function (r) { return r.blob(); }).then(function (blob) {
-      var file = new File([blob], 'pxax-nova.png', { type: blob.type || 'image/png' });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        return navigator.share({ files: [file], title: 'PXAX · Nova' });
-      }
-      if (navigator.clipboard && window.ClipboardItem) {
-        return navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () {
-          done = true;
-          toast('Скопировано в буфер 📋');
-        });
-      }
-      throw new Error('no-share');
-    }).catch(function () {
-      if (!done) { downloadPhoto(); toast('Скриншот сохранён'); }
-    });
-  }
-  $('photo-btn').addEventListener('click', function () {
-    if (!window.pxaxRoom3d || !window.pxaxRoom3d.screenshot) { toast('3D-комната ещё загружается…'); return; }
-    var url = window.pxaxRoom3d.screenshot();
-    if (!url) { toast('Не удалось снять кадр'); return; }
-    openPhotoStudio(url);
-  });
-  $('photo-share').addEventListener('click', sharePhoto);
-  $('photo-download').addEventListener('click', downloadPhoto);
-  $('photo-close').addEventListener('click', closePhotoStudio);
+  /* --- фото-студия временно отключена (ранняя версия) --- */
 
   /* --- облако: pull при загрузке, push при уходе со страницы --- */
   setTimeout(function () { cloudPull(); }, 3000);
