@@ -349,6 +349,17 @@ body.chat-open #laptop-widget{display:none}
 .ach-row.done .ach-ico{filter:none}
 .ach-row.done .ach-name{color:#9dffc4}
 .game-card.cooling{opacity:.55}
+.promo-row{display:flex;gap:6px;margin-bottom:8px}
+.promo-row input{flex:1;min-width:0;padding:8px 10px;background:rgba(12,12,24,.8);border:1px solid rgba(123,240,178,.35);border-radius:9px;color:#cfe8dd;font:12px system-ui;outline:none}
+.promo-row input:focus{border-color:rgba(123,240,178,.7)}
+.promo-row button{padding:8px 14px;background:rgba(123,240,178,.12);border:1px solid rgba(123,240,178,.45);color:#7bf0b2;border-radius:9px;font:600 12px system-ui;cursor:pointer}
+#photo-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);font-size:14px;min-width:34px}
+#photo-studio{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;padding:16px}
+#photo-studio[hidden]{display:none}
+.photo-box{width:100%;max-width:380px;background:#0a0a14;border:1px solid rgba(123,240,178,.35);border-radius:14px;overflow:hidden}
+#photo-img{width:100%;display:block;background:#000}
+.photo-actions{display:flex;gap:8px;padding:10px}
+.photo-actions button{flex:1;padding:9px;background:rgba(123,240,178,.1);border:1px solid rgba(123,240,178,.4);color:#9dffc4;border-radius:8px;font:600 12px system-ui;cursor:pointer}
 </style>
 </head>
 <body>
@@ -379,6 +390,7 @@ body.chat-open #laptop-widget{display:none}
         <div class="home-status off" id="home-status"><span class="d"></span><span id="mode-label">connecting…</span></div>
         <div class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></div>
         <button type="button" class="voice-toggle off" id="voice-toggle" aria-label="Голос компаньона: вкл/выкл" aria-pressed="true">🔊</button>
+        <button type="button" class="voice-toggle" id="photo-btn" aria-label="Сделать фото комнаты">📸</button>
       </div>
       <div class="home-xp"><strong id="home-level">Уровень 1 · 0/100 XP</strong><span>·</span><span id="home-mood">любопытная</span></div>
     </div>
@@ -463,10 +475,29 @@ body.chat-open #laptop-widget{display:none}
     <div class="wardrobe-grid" id="wardrobe-grid"></div>
     <h3 class="care-section-title">Достижения</h3>
     <div class="ach-list" id="ach-list"></div>
-    <p class="care-note">Голод, жажда и другие потребности меняются постепенно в течение реальных часов. При усталости 70%+ компаньон спит 5–30 минут, и чат недоступен; в туалет она отлучается на 2–5 минут. Мини-игры доступны раз в 30 минут. Валюта, уровень, имя и гардероб сохраняются на этом устройстве.</p>
+    <h3 class="care-section-title">Промокод</h3>
+    <div class="promo-row">
+      <input type="text" id="promo-input" placeholder="PXAX-XXXX" maxlength="16" autocomplete="off">
+      <button type="button" id="promo-btn">OK</button>
+    </div>
+    <h3 class="care-section-title">Напоминания</h3>
+    <div class="promo-row">
+      <button type="button" id="push-btn" style="flex:1;text-align:center">🔔 Напоминать раз в день в Telegram</button>
+    </div>
+    <p class="care-note">Голод, жажда и другие потребности меняются постепенно в течение реальных часов — у компании они копятся заметно медленнее, чем у человека. При усталости 70%+ компаньон спит 5–30 минут, и чат недоступен; в туалет она отлучается на 2–5 минут. Мини-игры доступны раз в 30 минут. Валюта, уровень, имя и гардероб сохраняются на этом устройстве и синхронизируются с облаком PXAX между устройствами.</p>
   </section>
 </div>
 <div id="toast"></div>
+<div id="photo-studio" hidden>
+  <div class="photo-box">
+    <img id="photo-img" alt="Кадр комнаты компаньона">
+    <div class="photo-actions">
+      <button type="button" id="photo-share">Поделиться</button>
+      <button type="button" id="photo-download">Скачать</button>
+      <button type="button" id="photo-close">Закрыть</button>
+    </div>
+  </div>
+</div>
 
   <script src="./js/perf.js"></script>
   <script src="./js/games.js"></script>
@@ -865,7 +896,8 @@ body.chat-open #laptop-widget{display:none}
 
   /* --- потребности, доставка и мини-игра --- */
   var NEEDS_KEY = 'pxax_ai_tamagotchi_v1';
-  var NEED_RATES_PER_MINUTE = { hunger: 0.24, thirst: 0.34, fatigue: 0.22, toilet: 0.27 };
+  // Темп потребностей: Nova «сильнее человека» — голод/жажда/усталость/туалет копятся медленно
+  var NEED_RATES_PER_MINUTE = { hunger: 0.08, thirst: 0.11, fatigue: 0.07, toilet: 0.09 };
   var FOOD = [
     { id: 'noodles', icon: '🍜', name: 'Неон-рамен', price: 12, hunger: 38, thirst: -2, detail: '−38 голода · доставка 30 сек.' },
     { id: 'drink', icon: '🧋', name: 'Лунный бабл-ти', price: 9, hunger: 3, thirst: 48, detail: '−48 жажды · доставка 30 сек.' },
@@ -945,10 +977,21 @@ body.chat-open #laptop-widget{display:none}
   } catch (e) {}
   function saveProgress() {
     try { storage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (e) {}
+    cloudPush();
   }
   function counter(key, step) {
     progress.counters[key] = Math.max(0, (Number(progress.counters[key]) || 0) + (step || 1));
     saveProgress();
+  }
+
+  /* ---- события дня (кормят «сны» и дневной отчёт) ---- */
+  var dayEvents = [];
+  var dayKey = '';
+  function logDayEvent(type, text) {
+    var today = new Date().toDateString();
+    if (dayKey !== today) { dayKey = today; dayEvents = []; }
+    dayEvents.push({ t: Date.now(), type: type, text: String(text || '').slice(0, 80) });
+    if (dayEvents.length > 40) dayEvents.shift();
   }
   function level() {
     return 1 + Math.floor(Math.pow(Math.max(0, progress.xp) / 100, 0.4));
@@ -1007,6 +1050,7 @@ body.chat-open #laptop-widget{display:none}
       if (!achUnlocked(a.id) && a.test()) {
         progress.achievements[a.id] = Date.now();
         needs.credits += a.reward;
+        logDayEvent('ach', a.title);
         newCount++;
       }
     });
@@ -1277,6 +1321,125 @@ body.chat-open #laptop-widget{display:none}
   function saveGames() {
     try { storage.setItem(GAMES_KEY, JSON.stringify(games)); } catch (e) {}
   }
+
+  /* ---- облачная синхронизация (D1 через worker) ----
+     Местный storage остаётся офлайн-кэшем и источником правды офлайн.
+     Push дёбоксерится на 5с; pull — при загрузке. Антисбот на сервере. */
+  var cloud = { dirty: false, timer: null, lastPushAt: 0 };
+  function buildSyncState() {
+    return {
+      xp: progress.xp,
+      credits: Math.floor(needs.credits),
+      named: !!progress.named,
+      needs: {
+        hunger: needs.hunger,
+        thirst: needs.thirst,
+        fatigue: needs.fatigue,
+        toilet: needs.toilet,
+        updatedAt: needs.updatedAt,
+        sleepUntil: needs.sleepUntil,
+        toiletUntil: needs.toiletUntil
+      },
+      wardrobe: { outfit: wardrobeState.outfit, hair: wardrobeState.hair },
+      counters: progress.counters
+    };
+  }
+  function doCloudPush() {
+    if (!window.pxaxApi) return;
+    window.pxaxApi.postJson(CFG.AI_API_URL, {
+      action: 'sync', op: 'push', ts: Date.now(), state: buildSyncState()
+    }, 15000, function (res) {
+      if (res && res.ok) cloud.lastPushAt = Date.now();
+    });
+  }
+  function cloudPush() {
+    if (!window.pxaxApi) return;
+    cloud.dirty = true;
+    if (cloud.timer) return;
+    cloud.timer = setTimeout(function () {
+      cloud.timer = null;
+      if (!cloud.dirty) return;
+      cloud.dirty = false;
+      doCloudPush();
+    }, 5000);
+  }
+  function cloudPushNow() {
+    if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; }
+    if (!cloud.dirty) return;
+    cloud.dirty = false;
+    doCloudPush();
+  }
+  function applyCloudState(remote) {
+    if (!remote || typeof remote !== 'object') return;
+    var changed = false;
+    var rx = Number(remote.xp);
+    if (Number.isFinite(rx) && rx > progress.xp) {
+      progress.xp = Math.min(1000000, Math.round(rx));
+      changed = true;
+    }
+    var rc = Number(remote.credits);
+    if (Number.isFinite(rc) && Math.floor(rc) > needs.credits) {
+      needs.credits = Math.min(1000000, Math.floor(rc));
+      changed = true;
+    }
+    if (remote.named && !progress.named) { progress.named = true; changed = true; }
+    if (remote.needs && typeof remote.needs === 'object') {
+      var ru = Number(remote.needs.updatedAt);
+      if (Number.isFinite(ru) && ru > (needs.updatedAt || 0)) {
+        ['hunger', 'thirst', 'fatigue', 'toilet'].forEach(function (k) {
+          var v = Number(remote.needs[k]);
+          if (Number.isFinite(v)) needs[k] = Math.max(0, Math.min(100, v));
+        });
+        needs.updatedAt = ru;
+        var su = Number(remote.needs.sleepUntil);
+        if (Number.isFinite(su)) needs.sleepUntil = su;
+        var tu = Number(remote.needs.toiletUntil);
+        if (Number.isFinite(tu)) needs.toiletUntil = tu;
+        changed = true;
+      }
+    }
+    if (remote.counters && typeof remote.counters === 'object') {
+      Object.keys(remote.counters).forEach(function (k) {
+        var v = remote.counters[k];
+        if (typeof v === 'number' && Number.isFinite(v)) {
+          var local = Number(progress.counters[k]);
+          if (!Number.isFinite(local) || v > local) {
+            progress.counters[k] = v;
+            changed = true;
+          }
+        }
+      });
+    }
+    if (remote.wardrobe && typeof remote.wardrobe === 'object') {
+      var wi = String(remote.wardrobe.outfit || '');
+      var wh = String(remote.wardrobe.hair || '');
+      if (wi && WARDROBE_ITEMS.outfit.some(function (i) { return i.key === wi; }) && wi !== wardrobeState.outfit) {
+        wardrobeState.outfit = wi;
+        changed = true;
+      }
+      if (wh && WARDROBE_ITEMS.hair.some(function (i) { return i.key === wh; }) && wh !== wardrobeState.hair) {
+        wardrobeState.hair = wh;
+        changed = true;
+      }
+    }
+    if (changed) {
+      saveProgress();
+      saveNeeds();
+      saveWardrobe();
+      renderNeeds();
+      renderWardrobe();
+      renderAch();
+      renderXp();
+      applyName();
+      toast('☁️ Прогресс восстановлен из облака PXAX');
+    }
+  }
+  function cloudPull() {
+    if (!window.pxaxApi) return;
+    window.pxaxApi.postJson(CFG.AI_API_URL, { action: 'sync', op: 'pull', ts: Date.now() }, 15000, function (res) {
+      if (res && res.ok && res.raw && res.raw.state) applyCloudState(res.raw.state);
+    });
+  }
   function refreshGamesUI() {
     var now = Date.now();
     var pairs = [
@@ -1311,6 +1474,7 @@ body.chat-open #laptop-widget{display:none}
     counter('deliveries');
     addXp(8);
     touchCare();
+    logDayEvent('food', food.name);
     if (!silent) toast(food.name + ' доставлен в комнату! 🍜');
     if (window.pxaxQuests) {
       var qf = window.pxaxQuests.track(storage, 'feed', 1);
@@ -1370,6 +1534,7 @@ body.chat-open #laptop-widget{display:none}
     try { storage.setItem(NEEDS_KEY, JSON.stringify(needs)); }
     catch (e) { console.error('Could not save PXAX needs.', e); }
     lastNeedsSave = Date.now();
+    cloudPush();
   }
 
   function clampNeed(value) {
@@ -1518,6 +1683,7 @@ body.chat-open #laptop-widget{display:none}
     counter('games');
     addXp(15);
     touchCare();
+    logDayEvent('game', (result && result.total ? 'Neon Reflex · ' + result.score + '/' + result.total : 'Data Run · ' + ((result && result.distance) || 0) + ' м') + ' · +' + reward + ' ◈');
     gameMeta.textContent = (result && result.total ? 'раунды: ' + result.score + '/' + result.total + ' · ' : '') +
       (result && result.distance ? 'дистанция: ' + result.distance + ' м · ' : '') +
       '+' + reward + ' ◈ зачислено';
@@ -1615,6 +1781,51 @@ body.chat-open #laptop-widget{display:none}
     }
   }
 
+  /* ---- редкие события в комнате (раз в ~45 мин в среднем, не чаще 3/день) ---- */
+  var RARE_EVENTS = [
+    { ico: '📡', text: 'поймала слабый добрый сигнал из сети', credits: 5 },
+    { ico: '☄️', text: 'увидела метеор за окном', credits: 8 },
+    { ico: '👻', text: 'в комнате на секунду мелькнул призрак глюка', credits: 6 },
+    { ico: '🎁', text: 'курьер оставил маленький подарок', credits: 10 },
+    { ico: '🪩', text: 'вышла к окну посверкать звёздам', credits: 4 }
+  ];
+  function maybeRareEvent() {
+    if (needs.sleepUntil || needs.toiletUntil || needs.pendingDelivery) return;
+    var now = Date.now();
+    if ((Number(progress.counters.lastRareAt) || 0) + 30 * 60000 > now) return;
+    var today = new Date().toDateString();
+    if (progress.counters.rareDay !== today) {
+      progress.counters.rareDay = today;
+      progress.counters.rareToday = 0;
+    }
+    if ((Number(progress.counters.rareToday) || 0) >= 3) return;
+    if (Math.random() > 1 / 2700) return; // среднее ожидание ~45 минут
+    var pick = RARE_EVENTS[Math.floor(Math.random() * RARE_EVENTS.length)];
+    needs.credits += pick.credits;
+    progress.counters.lastRareAt = now;
+    progress.counters.rareToday = (Number(progress.counters.rareToday) || 0) + 1;
+    logDayEvent('rare', pick.text);
+    saveNeeds();
+    saveProgress();
+    renderNeeds();
+    toast(pick.ico + ' Редкое событие: ' + charName() + ' ' + pick.text + ' (+' + pick.credits + ' ◈)');
+    if (window.pxaxRoom3d && window.pxaxRoom3d.emote) window.pxaxRoom3d.emote('tap');
+  }
+
+  /* ---- сны: LLM-сценка из событий дня, показываем после пробуждения ---- */
+  function requestDream() {
+    if (!window.pxaxApi || dayEvents.length < 3) return;
+    window.pxaxApi.postJson(CFG.AI_API_URL, {
+      action: 'dream',
+      events: dayEvents,
+      companionName: charName()
+    }, 25000, function (res) {
+      if (res && res.ok && res.raw && res.raw.dream) {
+        addMsg('bot', '🌙 И ещё — мне ночью снилось: ' + res.raw.dream, true);
+      }
+    });
+  }
+
   function updateNeeds() {
     var now = Date.now();
     var elapsedMinutes = Math.max(0, Math.min(10080, (now - needs.updatedAt) / 60000));
@@ -1651,6 +1862,7 @@ body.chat-open #laptop-widget{display:none}
       if (window.pxaxRoom3d) window.pxaxRoom3d.wake();
       counter('wakes');
       burstConfetti();
+      if (dayEvents.length >= 3) setTimeout(requestDream, 4000);
       var hourW = new Date(now).getHours();
       var greetWord = hourW >= 5 && hourW < 12 ? 'Доброе утро' : hourW >= 12 && hourW < 18 ? 'Добрый день' : hourW >= 18 && hourW < 23 ? 'Добрый вечер' : 'Доброй ночи';
       addMsg('bot', greetWord + '! Я выспалась и снова на связи. Что будем делать? ☀️');
@@ -1665,6 +1877,7 @@ body.chat-open #laptop-widget{display:none}
     }
     if (!needs.sleepUntil && needs.fatigue >= 70) startSleep();
     if (!needs.sleepUntil && !needs.toiletUntil && needs.toilet >= 88) startBathroomBreak();
+    maybeRareEvent();
     syncRoomRoutine();
     if (needs.sleepUntil && chatView.classList.contains('open')) closeChat();
 
@@ -1802,6 +2015,7 @@ body.chat-open #laptop-widget{display:none}
     parts.push('Голод ' + Math.round(needs.hunger) + '%, жажда ' + Math.round(needs.thirst) +
       '%, усталость ' + Math.round(needs.fatigue) + '%, туалет ' + Math.round(needs.toilet) + '%.');
     parts.push('На счету ' + Math.floor(needs.credits) + ' ◈.');
+    parts.push('Уровень ' + level() + ', настроение: ' + currentMood().label + '.');
     if (needs.sleepUntil > Date.now()) parts.push('Вообще-то я сплю…');
     else if (needs.fatigue >= 70) parts.push('Очень хочу спать, скоро отключусь.');
     else if (needs.fatigue >= 55) parts.push('Немного устала.');
@@ -1935,6 +2149,7 @@ body.chat-open #laptop-widget{display:none}
     counter('messages');
     touchCare();
     addXp(4);
+    logDayEvent('chat', text);
     if (window.pxaxQuests) {
       var qres = window.pxaxQuests.track(storage, 'chat3', 1);
       if (qres.claimed) {
@@ -2093,6 +2308,100 @@ body.chat-open #laptop-widget{display:none}
   loadPredictions();
   setInterval(loadPredictions, 10 * 60 * 1000);
   setTimeout(function () { checkAchievements(); }, 1500);
+
+  /* --- промокоды (кросс-экосистемные дропы) --- */
+  function redeemPromo() {
+    var code = $('promo-input').value.trim().toUpperCase();
+    if (!code) { toast('Введи промокод'); return; }
+    if (!window.pxaxApi) return;
+    $('promo-btn').disabled = true;
+    window.pxaxApi.postJson(CFG.AI_API_URL, { action: 'code', code: code }, 15000, function (res) {
+      $('promo-btn').disabled = false;
+      if (res && res.ok && res.raw && res.raw.ok) {
+        needs.credits += Math.max(0, res.raw.credits || 0);
+        saveNeeds();
+        renderNeeds();
+        addXp(10);
+        logDayEvent('promo', code);
+        toast('Промокод активирован: ' + (res.raw.message || ('+' + (res.raw.credits || 0) + ' ◈')));
+        try { $('promo-input').value = ''; } catch (e) {}
+      } else {
+        toast((res && res.raw && res.raw.error) ? res.raw.error : 'Неверный или исчерпанный код');
+      }
+    });
+  }
+  $('promo-btn').addEventListener('click', redeemPromo);
+  $('promo-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') redeemPromo();
+  });
+
+  /* --- напоминания в Telegram (deep-link px_<userId> → worker cron) --- */
+  $('push-btn').addEventListener('click', function () {
+    var uid = null;
+    try { uid = (tgUser && tgUser.id) ? tgUser.id : null; } catch (e) {}
+    if (!uid) { toast('Доступно только в Telegram'); return; }
+    try { window.open('https://t.me/' + encodeURIComponent(CHARACTER.bot) + '?start=px_' + uid, '_blank'); } catch (e) {}
+    toast('Открой бота и нажми Start — готово 🔔');
+  });
+
+  /* --- фото-студия (кадр 3D-комнаты) --- */
+  var photoUrl = '';
+  function openPhotoStudio(url) {
+    photoUrl = url;
+    var img = $('photo-img');
+    if (img) img.src = url;
+    var ps = $('photo-studio');
+    if (ps) ps.hidden = false;
+  }
+  function closePhotoStudio() {
+    var ps = $('photo-studio');
+    if (ps) ps.hidden = true;
+    photoUrl = '';
+  }
+  function downloadPhoto() {
+    if (!photoUrl) return;
+    var a = document.createElement('a');
+    a.href = photoUrl;
+    a.download = 'pxax-nova.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  function sharePhoto() {
+    if (!photoUrl) return;
+    var done = false;
+    fetch(photoUrl).then(function (r) { return r.blob(); }).then(function (blob) {
+      var file = new File([blob], 'pxax-nova.png', { type: blob.type || 'image/png' });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file], title: 'PXAX · Nova' });
+      }
+      if (navigator.clipboard && window.ClipboardItem) {
+        return navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () {
+          done = true;
+          toast('Скопировано в буфер 📋');
+        });
+      }
+      throw new Error('no-share');
+    }).catch(function () {
+      if (!done) { downloadPhoto(); toast('Скриншот сохранён'); }
+    });
+  }
+  $('photo-btn').addEventListener('click', function () {
+    if (!window.pxaxRoom3d || !window.pxaxRoom3d.screenshot) { toast('3D-комната ещё загружается…'); return; }
+    var url = window.pxaxRoom3d.screenshot();
+    if (!url) { toast('Не удалось снять кадр'); return; }
+    openPhotoStudio(url);
+  });
+  $('photo-share').addEventListener('click', sharePhoto);
+  $('photo-download').addEventListener('click', downloadPhoto);
+  $('photo-close').addEventListener('click', closePhotoStudio);
+
+  /* --- облако: pull при загрузке, push при уходе со страницы --- */
+  setTimeout(function () { cloudPull(); }, 3000);
+  window.addEventListener('pagehide', function () { cloudPushNow(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') cloudPushNow();
+  });
 })();
 </script>
 <script type="module" src="./scene3d.js"></script>

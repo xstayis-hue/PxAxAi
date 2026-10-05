@@ -14,6 +14,7 @@ scene.fog = new THREE.Fog('#090916', 10, 22);
 const renderer = new THREE.WebGLRenderer({
   alpha: true,
   antialias: true,
+  preserveDrawingBuffer: true,
   powerPreference: 'low-power'
 });
 // тени выключены сознательно: renderer.shadowMap не включаем ради мобильного GPU,
@@ -1125,7 +1126,16 @@ window.pxaxRoom3d = {
   setMood,
   setWardrobe,
   emote,
-  speak
+  speak,
+  screenshot() {
+    if (!rendererReady) return null;
+    try {
+      renderer.render(scene, camera);
+      return renderer.domElement.toDataURL('image/png');
+    } catch (err) {
+      return null;
+    }
+  }
 };
 
 initialize().catch(reportError);

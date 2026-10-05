@@ -2,9 +2,22 @@ name = "pxaxai"
 main = "index.js"
 compatibility_date = "2024-10-01"
 
+# Cron: пуш-напоминания в Telegram (работает, если заданы TELEGRAM_BOT_TOKEN + D1)
+crons = ["0 7 * * *"]
+
 [ai]
 binding = "AI"
 
 [[kv_namespaces]]
 binding = "MEMORY"
 id = "a1e886f2a23a442c85d7b43580b7dea7"
+
+# --- D1 (saves между устройствами, промокоды, пуши) ---
+# 1) wrangler d1 create pxaxai
+# 2) скопируй database_id из вывода сюда
+# 3) примени схему: wrangler d1 migrations apply pxaxai (см. schema.sql) или
+#    вразовый: `type schema.sql | wrangler d1 execute pxaxai --local` + --remote
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "pxaxai"
+# database_id = "<вставь_id_из_wrangler_d1_create>"
