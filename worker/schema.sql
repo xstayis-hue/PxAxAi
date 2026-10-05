@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS codes (
   credits INTEGER NOT NULL DEFAULT 0,
   max_uses INTEGER NOT NULL DEFAULT 1,
   uses INTEGER NOT NULL DEFAULT 0,
-  message TEXT
+  message TEXT,
+  redeemed TEXT
 );
 
 -- кросс-экосистемные дропы (каждый код одноразовый)

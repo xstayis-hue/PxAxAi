@@ -1,5 +1,5 @@
-/* PXAX · Ai — сервис-воркер: кэшируем только статику, API идёт в сеть */
-const CACHE = 'pxax-ai-v1';
+/* PXAX · Nova — сервис-воркер: кэшируем только статику, API идёт в сеть */
+const CACHE = 'pxax-ai-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,9 @@ const STATIC_ASSETS = [
   './js/agent-actions.js',
   './js/perf.js',
   './js/quests.js',
-  './assets/avatar-ai.svg',
+  './js/games.js',
+  './js/life.js',
+  './assets/avatar-nova.svg',
   './manifest.webmanifest'
 ];
 

@@ -1,22 +1,33 @@
 name = "pxaxai"
 main = "index.js"
 compatibility_date = "2024-10-01"
+compatibility_flags = ["nodejs_compat"]
 
-# Cron: пуш-напоминания в Telegram (работает, если заданы TELEGRAM_BOT_TOKEN + D1)
-crons = ["0 7 * * *"]
+# Cron:
+#  0 7 * * *   — утренний персональный дайджест по состоянию
+#  0 */3 * * * — «жизнь»: сервер догоняет потребности и решает, писать ли первой
+[triggers]
+crons = ["0 7 * * *", "0 */3 * * *"]
 
 [ai]
 binding = "AI"
 
+# Основное хранилище: KV. Здесь лежат saves, память, промокоды,
+# отложенные сообщения и rate-limit (ключи save:, mem:, push:, code:, pend:, rl:).
 [[kv_namespaces]]
 binding = "MEMORY"
 id = "a1e886f2a23a442c85d7b43580b7dea7"
 
-# --- D1 (saves между устройствами, промокоды, пуши) ---
-# 1) wrangler d1 create pxaxai
-# 2) скопируй database_id из вывода сюда
-# 3) примени схему: wrangler d1 migrations apply pxaxai (см. schema.sql) или
-#    вразовый: `type schema.sql | wrangler d1 execute pxaxai --local` + --remote
+# --- D1 (опционально) ---
+# Воркер полностью работает на KV. D1 подключается, если база есть:
+# он даёт строгую атомарность (промокоды, счётчики) и SQL-запросы по всем юзерам.
+#
+#   npx wrangler d1 create pxaxai
+#   # вставь database_id ниже и сними комментарии
+#   npx wrangler d1 execute pxaxai --remote --file=schema.sql
+#   # существующая база: ALTER TABLE codes ADD COLUMN redeemed TEXT;
+#   npx wrangler deploy
+#
 # [[d1_databases]]
 # binding = "DB"
 # database_name = "pxaxai"

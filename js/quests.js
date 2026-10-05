@@ -14,6 +14,14 @@
     { id: 'run', title: 'Сыграй в Data Run', target: 1, reward: 4 }
   ];
 
+  // вехи стрика: награда за то, что возвращаешься день за днём
+  var STREAK_MILESTONES = [
+    { days: 30, reward: 120, title: 'Месяц вместе' },
+    { days: 14, reward: 70, title: 'Две недели рядом' },
+    { days: 7, reward: 40, title: 'Неделя подряд' },
+    { days: 3, reward: 20, title: 'Три дня подряд' }
+  ];
+
   function todayKey() {
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -23,8 +31,15 @@
     var data = null;
     try { data = JSON.parse(storage.getItem(KEY) || 'null'); } catch (e) {}
     if (!data || data.date !== todayKey()) {
-      data = { date: todayKey(), progress: {}, claimed: {}, streak: data && data.streak || 0, lastActive: data && data.lastActive || null };
+      data = {
+        date: todayKey(), progress: {}, claimed: {},
+        streak: (data && data.streak) || 0,
+        lastActive: (data && data.lastActive) || null,
+        streakClaimed: (data && Array.isArray(data.streakClaimed)) ? data.streakClaimed : [],
+        pendingStreakReward: (data && data.pendingStreakReward) || null
+      };
     }
+    if (!Array.isArray(data.streakClaimed)) data.streakClaimed = [];
     return data;
   }
 
@@ -63,10 +78,29 @@
       if (this.state.lastActive !== todayKey()) {
         this.state.streak += 1;
         this.state.lastActive = todayKey();
+        // веха стрика — один раз на каждый уровень
+        var claimed = Array.isArray(this.state.streakClaimed) ? this.state.streakClaimed : (this.state.streakClaimed = []);
+        for (var i = 0; i < STREAK_MILESTONES.length; i++) {
+          var m = STREAK_MILESTONES[i];
+          if (this.state.streak >= m.days && claimed.indexOf(m.days) === -1) {
+            claimed.push(m.days);
+            save(storage, this.state);
+            this.state.pendingStreakReward = { days: m.days, reward: m.reward, title: m.title };
+            return this.state.streak;
+          }
+        }
         save(storage, this.state);
         return this.state.streak;
       }
       return this.state.streak;
+    },
+    // забираем награду за веху стрика (вызывается из UI, который начислит ◈)
+    claimStreakReward: function (storage) {
+      if (!this.state || !this.state.pendingStreakReward) return null;
+      var r = this.state.pendingStreakReward;
+      this.state.pendingStreakReward = null;
+      save(storage, this.state);
+      return r;
     },
     list: function () { return DAILY_QUESTS.slice(); },
     progress: function (questId) {

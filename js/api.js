@@ -6,6 +6,16 @@
 
   function now() { return Date.now(); }
 
+  // initData из Telegram WebApp — сервер по нему понимает, ЧЕЙ это save.
+  // Без него sync/promo отдают 401, поэтому шлём всегда, когда доступно.
+  function tgHeaders() {
+    try {
+      var wa = window.Telegram && window.Telegram.WebApp;
+      if (wa && wa.initData) return { 'X-Telegram-Init-Data': wa.initData };
+    } catch (e) {}
+    return null;
+  }
+
   function xhrJson(url, body, ms, cb) {
     var x = new XMLHttpRequest();
     var done = false;
@@ -17,6 +27,8 @@
     }, ms);
     x.open('POST', url, true);
     x.setRequestHeader('Content-Type', 'application/json');
+    var extra = tgHeaders();
+    if (extra) { for (var k in extra) { if (extra.hasOwnProperty(k)) x.setRequestHeader(k, extra[k]); } }
     x.timeout = ms;
     x.onload = function () {
       if (done) return;
@@ -25,14 +37,17 @@
       var text = x.responseText || '';
       var data = null;
       try { data = JSON.parse(text); } catch (e) {}
-      if (x.status >= 200 && x.status < 300 && data && data.reply) {
-        cb({ ok: true, text: String(data.reply), model: data.model || '', raw: data });
+      if (x.status >= 200 && x.status < 300 && data && typeof data === 'object') {
+        // sync/promo/dream отвечают без поля reply — раньше здесь стояло
+        // `&& data.reply`, из-за чего облачный прогресс вообще не читался.
+        cb({ ok: true, text: data.reply ? String(data.reply) : '', model: data.model || '', raw: data });
       } else {
         cb({
           ok: false,
           error: 'http',
           status: x.status,
-          text: (data && data.reply) ? String(data.reply) : ('HTTP ' + x.status)
+          text: (data && (data.reply || data.error)) ? String(data.reply || data.error) : ('HTTP ' + x.status),
+          raw: data
         });
       }
     };

@@ -504,6 +504,7 @@ body.chat-open #laptop-widget{display:none}
   <script src="./js/api.js"></script>
 <script src="./js/agent-actions.js"></script>
 <script src="./js/quests.js"></script>
+<script src="./js/life.js"></script>
 <script>
 /* =========================================================
    PXAX · Ai — ядро (UI + чат + 3D-комната)
@@ -881,6 +882,12 @@ body.chat-open #laptop-widget{display:none}
         addMsg('bot', (name ? name + ', я' : 'Я') + ' на связи. Я ' + charName() + ' — пиши что угодно, отвечу через нейросеть.', true);
       }
     }
+    // «Nova написала первой»: показываем отложенное сообщение при открытии чата
+    if (window.__pxaxPendingProactive) {
+      var proactive = window.__pxaxPendingProactive;
+      window.__pxaxPendingProactive = '';
+      setTimeout(function () { addMsg('bot', proactive, true); }, 420);
+    }
     setTimeout(function () { try { input.focus(); } catch (e) {} }, 250);
   }
   function closeChat() {
@@ -1087,38 +1094,22 @@ body.chat-open #laptop-widget{display:none}
     });
   }
 
-  /* ---- Голос (TTS) + конфетти ---- */
+  /* ---- Голос (TTS) + конфетти ----
+     Подбор голоса и озвучка живут в js/life.js: там выбирается качественный
+     русский женский голос, а если такого нет — озвучка выключается целиком
+     (роботизированный акцент хуже тишины). */
   var voiceEnabled = true;
   try { voiceEnabled = storage.getItem(VOICE_KEY) !== '0'; } catch (e) {}
-  var ruVoice = null;
-  function pickRuVoice() {
-    if (!('speechSynthesis' in window)) return;
-    try {
-      var voices = speechSynthesis.getVoices() || [];
-      ruVoice = voices.filter(function (v) { return /ru/i.test(v.lang); })
-        .sort(function (a, b) { return (b.name.indexOf('Google') === 0 ? 1 : 0) - (a.name.indexOf('Google') === 0 ? 1 : 0); })[0] || null;
-    } catch (e) {}
-  }
   function refreshVoiceToggle() {
+    if (window.pxaxLife && window.pxaxLife.refreshVoiceButton) { window.pxaxLife.refreshVoiceButton(); return; }
     var btn = $('voice-toggle');
     if (!btn) return;
     btn.classList.toggle('off', !voiceEnabled);
     btn.textContent = voiceEnabled ? '🔊' : '🔇';
-    btn.setAttribute('aria-pressed', String(voiceEnabled));
   }
   function speakTTS(text) {
-    if (!voiceEnabled || !('speechSynthesis' in window)) return;
-    try {
-      var clean = String(text).replace(/\s+/g, ' ').trim().slice(0, 400);
-      if (!clean || clean.indexOf('⏳') !== -1) return;
-      speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(clean);
-      if (ruVoice) u.voice = ruVoice;
-      u.lang = ruVoice ? ruVoice.lang : 'ru-RU';
-      u.rate = 1;
-      u.pitch = 1.05;
-      speechSynthesis.speak(u);
-    } catch (e) {}
+    if (!voiceEnabled) return;
+    if (window.pxaxLife && window.pxaxLife.speak) { window.pxaxLife.speak(text); return; }
   }
   function burstConfetti() {
     if (document.body.classList.contains('reduced-motion')) return;
@@ -1581,6 +1572,17 @@ body.chat-open #laptop-widget{display:none}
     window.pxaxQuests.init(storage);
     var streak = window.pxaxQuests.bumpStreakIfNewDay(storage);
     if (streakEl) streakEl.textContent = streak > 0 ? '🔥 ' + streak + ' дн. подряд' : '';
+    // награда за веху стрика (7/14/30 дней подряд)
+    var milestone = window.pxaxQuests.claimStreakReward(storage);
+    if (milestone) {
+      needs.credits += milestone.reward;
+      saveNeeds();
+      renderNeeds();
+      addXp(20);
+      haptic('success');
+      burstConfetti();
+      toast('🔥 ' + milestone.title + ' — ' + milestone.days + ' дн. подряд! +' + milestone.reward + ' ◈', 4200);
+    }
     list.textContent = '';
     window.pxaxQuests.list().forEach(function (q) {
       var done = window.pxaxQuests.isClaimed(q.id);
@@ -2000,6 +2002,7 @@ body.chat-open #laptop-widget{display:none}
       message: messageText,
       history: history.slice(-CFG.CONTEXT_LEN).map(function (m) { return { role: m.role, text: m.text }; }),
       state: state,
+      tzShift: -new Date().getTimezoneOffset() / 60,
       availableActions: ['bed', 'desk', 'door', 'toilet', 'open_vpn', 'open_predictions', 'open_coin'],
       links: {
         vpn: CFG.VPN_LINK,
@@ -2294,13 +2297,6 @@ body.chat-open #laptop-widget{display:none}
     }
   });
   refreshVoiceToggle();
-  if ('speechSynthesis' in window) {
-    pickRuVoice();
-    try {
-      speechSynthesis.onvoiceschanged = pickRuVoice;
-      if (speechSynthesis.getVoices && speechSynthesis.getVoices().length) pickRuVoice();
-    } catch (e) {}
-  }
   renderWardrobe();
   renderAch();
   renderXp();
@@ -2308,6 +2304,53 @@ body.chat-open #laptop-widget{display:none}
   loadPredictions();
   setInterval(loadPredictions, 10 * 60 * 1000);
   setTimeout(function () { checkAchievements(); }, 1500);
+
+  /* --- живой компаньон: онбординг, ритуал возвращения, инициатива, голос --- */
+  if (window.pxaxLife) {
+    window.pxaxLife.init({
+      apiUrl: CFG.AI_API_URL,
+      avatar: CHARACTER.avatar,
+      storage: storage,
+      needs: needs,
+      progress: progress,
+      saveNeeds: saveNeeds,
+      renderNeeds: renderNeeds,
+      addXp: addXp,
+      toast: toast,
+      haptic: haptic,
+      addMsg: addMsg,
+      openChat: openChat,
+      charName: charName,
+      logDayEvent: logDayEvent,
+      isChatOpen: function () { return chatView.classList.contains('open'); },
+      historyLength: function () { return history.length; },
+      hasTelegram: function () { return !!(tg && tg.initData); },
+      setCharName: function (name) {
+        name = String(name || '').trim().slice(0, 24);
+        if (!name) return;
+        try { storage.setItem(CHARACTER.NAME_KEY, name); } catch (e) {}
+        if (!progress.named) { progress.named = true; saveProgress(); }
+        applyName();
+        cloudPush();
+      },
+      onboardingDone: function () {
+        var name = tgUser && tgUser.first_name;
+        addMsg('bot', 'Привет' + (name ? ', ' + name : '') + '! Я ' + charName() +
+          '. Теперь мы живём вместе — заглядывай чаще, я скучаю 🤍', true);
+        // сообщение уже отрисовано и записано в историю: помечаем чат загруженным,
+        // иначе openChat отыграет историю заново и приветствие задвоится
+        chatBooted = true;
+        counter('onboarded');
+        addXp(15);
+        saveProgress();
+        renderNeeds();
+      },
+      onProactive: function (text) {
+        // держим сообщение, пока пользователь не откроет чат
+        window.__pxaxPendingProactive = String(text || '');
+      }
+    });
+  }
 
   /* --- промокоды (кросс-экосистемные дропы) --- */
   function redeemPromo() {

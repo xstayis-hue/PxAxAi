@@ -13,7 +13,7 @@ LLM-бэкенд мини-аппа. Понимает состояние перс
    - `code` — одноразовые промокоды (`PXAX-BETPAY`, `PXAX-PREDICT`, `PXAX-VPH`, `PXAX-NOW`);
    - `dream` — короткая LLM-сценка-сон из событий дня.
    Без D1 эти `action` отвечают вежливыми ошибками, остальное работает как раньше.
-6. **Проверка initData.** Если задан `TELEGRAM_BOT_TOKEN`, `X-Telegram-Init-Data` проверяется по HMAC-SHA256 (и по возрасту ≤ 24ч), иначе — fallback на regex `id`.
+6. **Проверка initData.** Если задан `TELEGRAM_BOT_TOKEN`, `X-Telegram-Init-Data` проверяется по HMAC-SHA256 (constant-time сравнение, свежесть ≤ 24ч). Если initData **передан**, но подпись не проходит (или токен не настроен) — запрос получает `401 unauthorized`. Regex-fallback по неподписанному `id` убран: раньше он позволял читать/писать чужой save. `sync` и `code` не работают без подтверждённого Telegram-пользователя.
 7. **Cron-пуш в Telegram.** `event`-хук (cron `0 7 * * *`) связывает `/start px_<userId>` с чатом и раз в день шлёт персональное напоминание по сохранённому состоянию. Нужны `TELEGRAM_BOT_TOKEN` + D1.
 8. **LLM-консолидация памяти.** Раз в 12 реплик компактная модель переписывает список фактов (убирает одноразовое, держит ≤ 12 пунктов).
 
@@ -39,6 +39,10 @@ npx wrangler deploy
 curl -X POST https://pxaxai.xstayis.workers.dev \
   -H "Content-Type: application/json" \
   -d '{"message":"привет","history":[]}'
+
+# sync/promo без initData теперь 401 — это ожидаемо:
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://pxaxai.xstayis.workers.dev \
+  -H "Content-Type: application/json" -d '{"action":"sync","op":"pull"}'   # → 401
 
 # со стейтом
 curl -X POST https://pxaxai.xstayis.workers.dev \
