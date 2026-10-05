@@ -1110,43 +1110,7 @@ body.chat-open #laptop-widget{display:none}
     if (!voiceEnabled) return;
     if (window.pxaxLife && window.pxaxLife.speak) { window.pxaxLife.speak(text); return; }
   }
-  function burstConfetti() {
-    if (document.body.classList.contains('reduced-motion')) return;
-    var fx = $('fx');
-    if (!fx || !fx.getContext) return;
-    var ctx = fx.getContext('2d');
-    var W = fx.width = fx.clientWidth;
-    var H = fx.height = fx.clientHeight;
-    var parts = [];
-    var colors = ['#ffd27a', '#5ce1f1', '#ff9ff3', '#7dffab', '#ffa8d8', '#c3a6ff'];
-    for (var i = 0; i < 70; i++) {
-      parts.push({
-        x: Math.random() * W,
-        y: -12 - Math.random() * 40,
-        vx: (Math.random() - 0.5) * 2.2,
-        vy: 1.5 + Math.random() * 2.4,
-        s: 4 + Math.random() * 5,
-        r: Math.random() * Math.PI,
-        vr: (Math.random() - 0.5) * 0.25,
-        c: colors[i % colors.length]
-      });
-    }
-    var t0 = performance.now();
-    (function tick(now) {
-      ctx.clearRect(0, 0, W, H);
-      parts.forEach(function (p) {
-        p.x += p.vx; p.y += p.vy; p.r += p.vr;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.r);
-        ctx.fillStyle = p.c;
-        ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
-        ctx.restore();
-      });
-      if (now - t0 < 2600) requestAnimationFrame(tick);
-      else ctx.clearRect(0, 0, W, H);
-    })(t0);
-  }
+  /* burstConfetti убрано */
 
   /* ---- pxax-predict: виджет прогнозов на ноутбуке ---- */
   var laptopWidgetEl = $('laptop-widget');
@@ -1578,7 +1542,7 @@ body.chat-open #laptop-widget{display:none}
       renderNeeds();
       addXp(20);
       haptic('success');
-      burstConfetti();
+      /* burstConfetti убрано */
       toast('🔥 ' + milestone.title + ' — ' + milestone.days + ' дн. подряд! +' + milestone.reward + ' ◈', 4200);
     }
     list.textContent = '';
@@ -1861,7 +1825,7 @@ body.chat-open #laptop-widget{display:none}
       sleepTaskStarted = false;
       if (window.pxaxRoom3d) window.pxaxRoom3d.wake();
       counter('wakes');
-      burstConfetti();
+      /* burstConfetti убрано */
       if (dayEvents.length >= 3) setTimeout(requestDream, 4000);
       var hourW = new Date(now).getHours();
       var greetWord = hourW >= 5 && hourW < 12 ? 'Доброе утро' : hourW >= 12 && hourW < 18 ? 'Добрый день' : hourW >= 18 && hourW < 23 ? 'Добрый вечер' : 'Доброй ночи';
