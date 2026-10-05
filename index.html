@@ -426,7 +426,7 @@ body.chat-open #laptop-widget{display:none}
   <section id="chat-view">
     <div class="chat-top">
       <button type="button" class="back" id="btn-back">‹</button>
-      <img class="mini-dot" id="mini-dot" src="./assets/avatar-nova.svg" alt="Портрет Nova">
+      <img class="mini-dot" id="mini-dot" src="./assets/avatar-nova.jpg" alt="Портрет Nova">
       <div class="info"><strong id="chat-char-name">Nova</strong><span id="chat-status">connecting…</span></div>
       <button type="button" class="chat-care" id="chat-care" aria-label="Открыть уход и мини-игры"><span id="chat-balance">20</span> ◈</button>
     </div>
@@ -518,7 +518,7 @@ body.chat-open #laptop-widget{display:none}
     id: 'nova',
     name: 'Nova',
     NAME_KEY: 'pxax_char_name_v1',
-    avatar: './assets/avatar-nova.svg',
+    avatar: './assets/avatar-nova.jpg',
     bot: 'PxAxAi_bot',
     blurb: 'живой нейро-агент в 3D-комнате'
   };
@@ -2292,8 +2292,9 @@ body.chat-open #laptop-widget{display:none}
     voiceEnabled = !voiceEnabled;
     try { storage.setItem(VOICE_KEY, voiceEnabled ? '1' : '0'); } catch (e) {}
     refreshVoiceToggle();
-    if (!voiceEnabled && 'speechSynthesis' in window) {
-      try { speechSynthesis.cancel(); } catch (e) {}
+    if (!voiceEnabled) {
+      if (window.pxaxLife && window.pxaxLife.stopSpeak) window.pxaxLife.stopSpeak();
+      else if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (e) {} }
     }
   });
   refreshVoiceToggle();

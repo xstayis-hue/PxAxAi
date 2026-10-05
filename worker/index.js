@@ -664,6 +664,76 @@ async function consolidateMemory(env, memory, body) {
 }
 
 /* =========================================================
+   Озвучка (action: tts) — естественный русский женский голос
+   Локальные системные голоса на Windows/Android в WebView звучат
+   роботизированно (Microsoft Irina и т.п.), а в Telegram WebView их
+   часто нет вовсе. Поэтому озвучка идёт с сервера: Google TTS (ru),
+   который звучит живо. Текст режется на куски по ~180 символов
+   (ограничение апстрима) и склеивается в один mp3.
+   ========================================================= */
+function ttsChunks(text) {
+  const clean = String(text || '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\{[^{}]*"(?:action|link)"[^{}]*\}/g, ' ') // служебный JSON не озвучиваем
+    .replace(/[*_#`>]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 1200);
+  if (!clean) return [];
+  const sentences = clean.split(/(?<=[.!?…:;])\s+/);
+  const out = [];
+  let cur = '';
+  const push = (s) => { if (s.trim()) out.push(s.trim()); };
+  for (let s of sentences) {
+    while (s.length > 180) {
+      const cut = s.lastIndexOf(' ', 180);
+      const at = cut > 60 ? cut : 180;
+      push((cur ? cur + ' ' : '') + s.slice(0, at));
+      cur = '';
+      s = s.slice(at).trim();
+    }
+    if ((cur + ' ' + s).trim().length > 180) { push(cur); cur = s; }
+    else cur = (cur ? cur + ' ' : '') + s;
+  }
+  push(cur);
+  return out;
+}
+
+async function handleTts(env, body) {
+  const parts = ttsChunks(body && body.text);
+  if (!parts.length) return json({ ok: false, error: 'пустой текст' }, { status: 200 });
+  const rate = ['0.8', '0.9', '1', '1.1'].includes(String(body.rate)) ? String(body.rate) : '0.9';
+  const bufs = [];
+  for (const part of parts) {
+    const target = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ru&ttsspeed=' + rate + '&q=' + encodeURIComponent(part);
+    try {
+      const r = await fetch(target, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+          'Referer': 'https://translate.google.com/'
+        }
+      });
+      if (r.ok) bufs.push(new Uint8Array(await r.arrayBuffer()));
+      else await bumpError(env, 'tts-upstream-' + r.status);
+    } catch (e) { await bumpError(env, 'tts-fetch'); }
+  }
+  if (!bufs.length) return json({ ok: false, error: 'озвучка недоступна' }, { status: 502 });
+  let total = 0;
+  for (const b of bufs) total += b.length;
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const b of bufs) { out.set(b, off); off += b.length; }
+  return new Response(out, {
+    headers: {
+      ...cors,
+      'Content-Type': 'audio/mpeg',
+      'Cache-Control': 'public, max-age=604800',
+      'X-Chunks': String(parts.length),
+    }
+  });
+}
+
+/* =========================================================
    Стриминг (SSE) и JSON-ответ чата
    ========================================================= */
 function wantsStream(request) {
@@ -967,6 +1037,8 @@ export default {
       case 'dream':
         if (!env.AI) return json({ ok: false, error: 'нет binding AI' });
         return handleDream(env, body);
+      case 'tts':
+        return handleTts(env, body);
     }
 
     // --- обычный чат ---

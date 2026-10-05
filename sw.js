@@ -1,5 +1,5 @@
 /* PXAX · Nova — сервис-воркер: кэшируем только статику, API идёт в сеть */
-const CACHE = 'pxax-ai-v2';
+const CACHE = 'pxax-ai-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -10,7 +10,8 @@ const STATIC_ASSETS = [
   './js/quests.js',
   './js/games.js',
   './js/life.js',
-  './assets/avatar-nova.svg',
+  './assets/avatar-nova.jpg',
+  './assets/icon-192.png',
   './manifest.webmanifest'
 ];
 

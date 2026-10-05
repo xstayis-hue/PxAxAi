@@ -34,50 +34,48 @@
 
   /* =========================================================
      ГОЛОС
-     Ищем качественный русский женский голос среди известных «хороших»
-     движков. Если подходящего нет — голос выключаем целиком (лучше тишина,
-     чем роботизированный акцент), как и просил заказчик.
+     Системные голоса WebView (Microsoft Irina и подобные) звучат
+     роботизированно, а в Telegram WebView их часто нет вовсе. Поэтому
+     основной путь — серверная озвучка (Google TTS, ru) через воркер:
+     звучит живо. Локальный speechSynthesis — только аварийный резерв,
+     и лишь если он даёт действительно хороший русский женский голос.
      ========================================================= */
-  var FEMALE_RU = [
+  var SERVER_TTS = true;          // серверная озвучка как основная
+  var voice = { enabled: true, mode: 'server', localVoice: null, reason: '' };
+  var audioEl = null;
+  var ttsCache = {};              // текст → object URL, чтобы не дёргать сервер повторно
+
+  var GOOD_RU = [
     { re: /google\s+русский/i, score: 100 },
     { re: /svetlana|светлана/i, score: 95 },
     { re: /dariya|дария|daria/i, score: 95 },
     { re: /milena|милена/i, score: 90 },
     { re: /katya|катя/i, score: 88 },
-    { re: /irina|ирина/i, score: 85 },
-    { re: /microsoft.*(ru|russian)/i, score: 70 },
-    { re: /yandex|алиса|alice/i, score: 80 },
-    { re: /ru[-_]?ru/i, score: 40 }
+    { re: /yandex|алиса|alice/i, score: 80 }
   ];
-  var MALE_RU = /yuri|юрий|dmitri|дмитрий|male|мужск/i;
+  var BAD_RU = /irina|ирина|pavel|павел|microsoft|male|мужск/i;
 
-  var voice = { enabled: false, voice: null, reason: '' };
-
-  function pickVoice() {
-    voice.enabled = false;
-    voice.voice = null;
-    voice.reason = '';
-    if (!('speechSynthesis' in window)) { voice.reason = 'no-tts'; return; }
+  function pickLocalVoice() {
+    voice.localVoice = null;
+    if (!('speechSynthesis' in window)) return;
     var voices = [];
-    try { voices = speechSynthesis.getVoices() || []; } catch (e) { voices = []; }
-    var ru = voices.filter(function (v) { return /^ru/i.test(v.lang || '') || /russian|русск/i.test(v.name || ''); });
-    if (!ru.length) { voice.reason = 'no-ru-voice'; return; }
-    // Женские голоса с высоким score, мужские и «неизвестные» — вниз
+    try { voices = speechSynthesis.getVoices() || []; } catch (e) { return; }
+    var ru = voices.filter(function (v) { return /^ru/i.test(v.lang || ''); });
     var ranked = ru.map(function (v) {
-      var name = v.name || '';
       var s = 0;
-      FEMALE_RU.forEach(function (f) { if (f.re.test(name)) s = Math.max(s, f.score); });
-      if (MALE_RU.test(name)) s -= 200;
-      if (v.localService) s += 2;
+      GOOD_RU.forEach(function (g) { if (g.re.test(v.name || '')) s = Math.max(s, g.score); });
+      if (BAD_RU.test(v.name || '')) s -= 200; // «Microsoft Irina» — как раз то, что не нравится
       return { v: v, s: s };
     }).sort(function (a, b) { return b.s - a.s; });
+    if (ranked[0] && ranked[0].s >= 80) voice.localVoice = ranked[0].v;
+  }
 
-    var best = ranked[0];
-    // Порог: голос должен быть явно русским и похожим на женский
-    if (!best || best.s < 40) { voice.reason = 'no-good-voice'; return; }
-    voice.enabled = true;
-    voice.voice = best.v;
-    setKey(KEYS.voiceName, best.v.name || '');
+  function ensureAudio() {
+    if (audioEl) return audioEl;
+    audioEl = new Audio();
+    audioEl.preload = 'auto';
+    audioEl.setAttribute('playsinline', '');
+    return audioEl;
   }
 
   function refreshVoiceButton() {
@@ -89,27 +87,66 @@
     btn.textContent = on ? '🔊' : '🔇';
     btn.setAttribute('aria-pressed', String(on));
     btn.title = voice.enabled
-      ? 'Голос компаньона: ' + (voice.voice && voice.voice.name || 'русский') + ' — вкл/выкл'
-      : 'Хорошего русского голоса нет — озвучка отключена';
-    btn.disabled = !voice.enabled;
-    btn.style.opacity = voice.enabled ? '' : '.45';
+      ? 'Голос компаньона: живой русский (сервер) — вкл/выкл'
+      : 'Озвучка недоступна';
   }
 
-  function speak(text) {
-    if (!voice.enabled) return false;
-    if (getKey(KEYS.voice) === '0') return false;
+  function stopSpeak() {
+    try { if (audioEl) { audioEl.pause(); audioEl.currentTime = 0; } } catch (e) {}
+    try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {}
+  }
+
+  function speakLocal(text) {
+    if (!voice.localVoice) return false;
     try {
-      var clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 400);
-      if (!clean || clean.indexOf('⏳') !== -1) return false;
-      speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(clean);
-      if (voice.voice) u.voice = voice.voice;
-      u.lang = (voice.voice && voice.voice.lang) || 'ru-RU';
-      u.rate = 0.98;
-      u.pitch = 1.12; // чуть выше — женственнее, без «робота»
+      var u = new SpeechSynthesisUtterance(String(text).slice(0, 400));
+      u.voice = voice.localVoice;
+      u.lang = voice.localVoice.lang || 'ru-RU';
+      u.rate = 1; u.pitch = 1.05;
       speechSynthesis.speak(u);
       return true;
     } catch (e) { return false; }
+  }
+
+  function speak(text) {
+    if (getKey(KEYS.voice) === '0') return false;
+    var clean = String(text || '')
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/\{[^{}]*"(?:action|link)"[^{}]*\}/g, ' ')
+      .replace(/[*_#`>]/g, ' ')
+      .replace(/\s+/g, ' ').trim().slice(0, 600);
+    if (!clean || clean.indexOf('⏳') !== -1) return false;
+    stopSpeak();
+
+    if (SERVER_TTS && app && app.apiUrl) {
+      // кэш: одинаковые фразы не озвучиваем дважды
+      if (ttsCache[clean]) {
+        try { var a0 = ensureAudio(); a0.src = ttsCache[clean]; a0.play().catch(function () {}); return true; } catch (e) {}
+      }
+      try {
+        var x = new XMLHttpRequest();
+        x.open('POST', app.apiUrl, true);
+        x.setRequestHeader('Content-Type', 'application/json');
+        x.responseType = 'blob';
+        x.timeout = 20000;
+        x.onload = function () {
+          if (x.status >= 200 && x.status < 300 && x.response && x.response.size > 200) {
+            var url = URL.createObjectURL(x.response);
+            ttsCache[clean] = url;
+            var keys = Object.keys(ttsCache);
+            if (keys.length > 40) { try { URL.revokeObjectURL(ttsCache[keys[0]]); } catch (e) {} delete ttsCache[keys[0]]; }
+            try { var a = ensureAudio(); a.src = url; a.play().catch(function () {}); } catch (e) {}
+          } else {
+            speakLocal(clean); // сервер не смог — пробуем хороший локальный, если он есть
+          }
+        };
+        x.onerror = function () { speakLocal(clean); };
+        x.ontimeout = function () { speakLocal(clean); };
+        x.send(JSON.stringify({ action: 'tts', text: clean }));
+        return true;
+      } catch (e) { return speakLocal(clean); }
+    }
+    return speakLocal(clean);
   }
 
   /* =========================================================
@@ -149,7 +186,7 @@
     injectCss();
     var wrap = document.createElement('div');
     wrap.id = 'pxax-onboard';
-    var avatar = (app && app.avatar) || './assets/avatar-nova.svg';
+    var avatar = (app && app.avatar) || './assets/avatar-nova.jpg';
     wrap.innerHTML = '' +
       '<section class="pxax-ob-card" role="dialog" aria-modal="true" aria-labelledby="pxax-ob-title">' +
       '  <img class="pxax-ob-avatar" src="' + avatar + '" alt="">' +
@@ -294,17 +331,20 @@
   function init(opts) {
     app = opts || {};
     injectCss();
-    pickVoice();
+    pickLocalVoice();
     refreshVoiceButton();
     if ('speechSynthesis' in window) {
       try {
-        speechSynthesis.onvoiceschanged = function () { pickVoice(); refreshVoiceButton(); };
+        speechSynthesis.onvoiceschanged = function () { pickLocalVoice(); refreshVoiceButton(); };
       } catch (e) {}
     }
     // кнопка голоса: перехватываем и учитываем доступность голоса
     var btn = document.getElementById('voice-toggle');
     if (btn) {
-      btn.addEventListener('click', function () { setTimeout(refreshVoiceButton, 0); });
+      btn.addEventListener('click', function () {
+        if (getKey(KEYS.voice) === '0') stopSpeak();
+        setTimeout(refreshVoiceButton, 0);
+      });
     }
     if (shouldOnboard()) {
       setTimeout(showOnboarding, 600);
@@ -324,8 +364,16 @@
   window.pxaxLife = {
     init: init,
     speak: speak,
+    stopSpeak: stopSpeak,
     refreshVoiceButton: refreshVoiceButton,
-    voiceInfo: function () { return { enabled: voice.enabled, name: voice.voice && voice.voice.name, reason: voice.reason }; },
+    voiceInfo: function () {
+      return {
+        enabled: voice.enabled,
+        mode: SERVER_TTS ? 'server' : 'local',
+        localVoice: voice.localVoice && voice.localVoice.name,
+        reason: voice.reason
+      };
+    },
     state: function () { return state; },
     syncLife: syncLife,
     returnBonusFor: returnBonusFor
