@@ -84,7 +84,7 @@
     var wantOn = getKey(KEYS.voice) !== '0';
     var on = wantOn && voice.enabled;
     btn.classList.toggle('off', !on);
-    btn.textContent = on ? '🔊' : '🔇';
+    btn.innerHTML = '<svg class="ic ic-voice" aria-hidden="true"><use href="#' + (on ? 'i-sound' : 'i-mute') + '"/></svg>';
     btn.setAttribute('aria-pressed', String(on));
     btn.title = voice.enabled
       ? 'Голос компаньона: живой русский (сервер) — вкл/выкл'
