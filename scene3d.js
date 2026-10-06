@@ -47,6 +47,121 @@ scene.add(cyanLight);
 const world = new THREE.Group();
 scene.add(world);
 
+/* --- экран монитора: canvas-текстура со слайдами ---
+   В кадре монитор занимает ~55px, читаемого текста на нём не разместить, поэтому
+   на экран идут слайды крупным планом (рынок, уверенность, полоса), а полный
+   список — в панели слева. Слайды листаются сами. */
+const monitorCanvas = document.createElement("canvas");
+monitorCanvas.width = 512;
+monitorCanvas.height = 320;
+const monitorCtx = monitorCanvas.getContext("2d");
+const monitorTexture = new THREE.CanvasTexture(monitorCanvas);
+monitorTexture.colorSpace = THREE.SRGBColorSpace;
+let monitorSlides = [];
+let monitorSlideIndex = 0;
+let monitorSlideTimer = 0;
+const MONITOR_SLIDE_SECONDS = 4.5;
+let monitorDate = "";
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawMonitorSlide() {
+  const ctx = monitorCtx;
+  ctx.fillStyle = "#06121c";
+  ctx.fillRect(0, 0, 512, 320);
+  ctx.fillStyle = "#0b2b3a";
+  ctx.fillRect(0, 0, 512, 42);
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#7ff0ea";
+  ctx.font = "700 20px system-ui, sans-serif";
+  ctx.fillText(monitorDate ? "PXAX · AI-АНАЛИТИКА · " + monitorDate : "PXAX · AI-АНАЛИТИКА", 18, 22);
+  ctx.fillStyle = "#5ce1f1";
+  ctx.beginPath();
+  ctx.arc(486, 21, 6, 0, Math.PI * 2);
+  ctx.fill();
+  const slide = monitorSlides[monitorSlideIndex % Math.max(1, monitorSlides.length)];
+  if (!slide) {
+    ctx.fillStyle = "#9fb6c8";
+    ctx.font = "600 24px system-ui, sans-serif";
+    ctx.fillText("Собираю свежие данные…", 22, 170);
+    monitorTexture.needsUpdate = true;
+    return;
+  }
+  if (slide.kind === "promo") {
+    ctx.fillStyle = "#ffc93c";
+    ctx.font = "800 22px system-ui, sans-serif";
+    ctx.fillText(slide.tag || "ПАРТНЁР", 22, 80);
+    ctx.fillStyle = "#f2f7ff";
+    ctx.font = "800 40px system-ui, sans-serif";
+    ctx.fillText((slide.title || "").slice(0, 18), 22, 142);
+    ctx.fillStyle = "#9fb6c8";
+    ctx.font = "600 22px system-ui, sans-serif";
+    ctx.fillText((slide.sub || "").slice(0, 30), 22, 190);
+    ctx.fillStyle = "#ffc93c";
+    roundRect(ctx, 22, 228, 300, 46, 12);
+    ctx.fill();
+    ctx.fillStyle = "#0a0d16";
+    ctx.font = "800 24px system-ui, sans-serif";
+    ctx.fillText((slide.code || "").slice(0, 18), 38, 252);
+  } else {
+    ctx.fillStyle = "#9fb6c8";
+    ctx.font = "600 21px system-ui, sans-serif";
+    ctx.fillText((slide.league || "").slice(0, 26), 22, 78);
+    ctx.fillStyle = "#f2f7ff";
+    ctx.font = "800 32px system-ui, sans-serif";
+    ctx.fillText((slide.title || "").slice(0, 22), 22, 122);
+    ctx.fillStyle = "#5ce1f1";
+    ctx.font = "800 42px system-ui, sans-serif";
+    ctx.fillText(slide.market || "", 22, 176);
+    if (slide.confidence) {
+      ctx.fillStyle = "#f2f7ff";
+      ctx.font = "800 38px system-ui, sans-serif";
+      const label = slide.confidence + "%";
+      ctx.fillText(label, 490 - ctx.measureText(label).width, 176);
+      ctx.fillStyle = "rgba(139,163,199,.25)";
+      roundRect(ctx, 22, 214, 340, 15, 8);
+      ctx.fill();
+      ctx.fillStyle = slide.value ? "#ffc93c" : "#5ce1f1";
+      roundRect(ctx, 22, 214, Math.max(16, 340 * Math.min(1, slide.confidence / 100)), 15, 8);
+      ctx.fill();
+    }
+    ctx.fillStyle = slide.value ? "#ffc93c" : "#6a8a9c";
+    ctx.font = "700 21px system-ui, sans-serif";
+    ctx.fillText(slide.value ? "VALUE · кэф " + (slide.odds || "") : (slide.odds ? "кэф " + slide.odds : ""), 22, 262);
+  }
+  monitorTexture.needsUpdate = true;
+}
+
+/* Слайды листаются сами: на экране в кадре ~55px, иначе больше одного
+   прогноза за раз не показать. */
+function updateMonitorSlides(delta) {
+  if (!monitorSlides.length) return;
+  monitorSlideTimer += delta;
+  if (monitorSlideTimer >= MONITOR_SLIDE_SECONDS) {
+    monitorSlideTimer = 0;
+    monitorSlideIndex = (monitorSlideIndex + 1) % monitorSlides.length;
+    drawMonitorSlide();
+  }
+}
+
+function setMonitorSlides(payload) {
+  const data = payload || {};
+  monitorSlides = Array.isArray(data.slides) ? data.slides.slice(0, 12) : [];
+  monitorDate = data.date || "";
+  monitorSlideIndex = 0;
+  monitorSlideTimer = 0;
+  drawMonitorSlide();
+}
+drawMonitorSlide();
+
 const material = (color, options = {}) => new THREE.MeshStandardMaterial({
   color,
   roughness: options.roughness === undefined ? 0.72 : options.roughness,
@@ -84,9 +199,9 @@ function createRoom() {
   const trimCyan = material('#57e8f1', { emissive: '#17a8cc', emissiveIntensity: 1.1 });
 
   box(world, 'floor', '#111322', [0, -0.16, -0.05], [6.1, 0.3, 5.6]);
-  box(world, 'back-wall-left', wallMat.color, [-0.9, 2.02, -2.82], [4.3, 4.05, 0.18]);
-  box(world, 'back-wall-right', wallMat.color, [2.6, 2.02, -2.82], [0.9, 4.05, 0.18]);
-  box(world, 'door-lintel', wallMat.color, [1.65, 3.15, -2.82], [0.8, 1.8, 0.18]);
+  box(world, 'back-wall-left', wallMat.color, [0.9, 2.02, -2.82], [4.3, 4.05, 0.18]);
+  box(world, 'back-wall-right', wallMat.color, [-2.6, 2.02, -2.82], [0.9, 4.05, 0.18]);
+  box(world, 'door-lintel', wallMat.color, [-1.65, 3.15, -2.82], [0.8, 1.8, 0.18]);
   box(world, 'left-wall', '#111321', [-3.06, 2.02, -0.06], [0.18, 4.05, 5.5]);
   box(world, 'right-wall', '#111321', [3.06, 2.02, -0.06], [0.18, 4.05, 5.5]);
   box(world, 'ceiling-edge', '#111322', [0, 4.05, -0.15], [6.15, 0.12, 5.25]);
@@ -99,8 +214,9 @@ function createRoom() {
   box(world, 'floor-neon-right', trimCyan, [2.91, 0.015, 0.1], [0.035, 0.025, 4.8]);
   box(world, 'back-neon', trimViolet, [0, 3.88, -2.69], [4.75, 0.035, 0.025]);
 
-  const windowX = -0.75;
-  const windowGlass = box(world, 'window-glass', '#132a46', [windowX, 2.42, -2.67], [2.0, 1.36, 0.035], {
+  // Окно на правой части задней стены, под ним — рабочий стол, рядом кровать.
+  const windowX = 0.6;
+  const windowGlass = box(world, 'window-glass', '#132a46', [windowX, 2.42, -2.67], [1.7, 1.36, 0.035], {
     emissive: '#12446c',
     emissiveIntensity: 0.42,
     metalness: 0.25,
@@ -108,7 +224,7 @@ function createRoom() {
   });
   const cityMats = [];
   for (let i = 0; i < 6; i += 1) {
-    const x = windowX - 0.88 + i * 0.34;
+    const x = windowX - 0.74 + i * 0.296;
     const height = 0.36 + (i % 3) * 0.18;
     const tower = box(world, `city-tower-${i}`, i % 2 ? '#27315b' : '#1d274c',
       [x, 1.76 + height / 2, -2.63], [0.24, height, 0.035], {
@@ -117,16 +233,16 @@ function createRoom() {
       });
     cityMats.push(tower.material);
   }
-  box(world, 'window-frame-top', '#565078', [windowX, 3.12, -2.61], [2.12, 0.075, 0.12]);
-  box(world, 'window-frame-bottom', '#565078', [windowX, 1.72, -2.61], [2.12, 0.075, 0.12]);
-  box(world, 'window-frame-left', '#565078', [windowX - 1.03, 2.42, -2.61], [0.075, 1.4, 0.12]);
-  box(world, 'window-frame-right', '#565078', [windowX + 1.03, 2.42, -2.61], [0.075, 1.4, 0.12]);
+  box(world, 'window-frame-top', '#565078', [windowX, 3.12, -2.61], [1.82, 0.075, 0.12]);
+  box(world, 'window-frame-bottom', '#565078', [windowX, 1.72, -2.61], [1.82, 0.075, 0.12]);
+  box(world, 'window-frame-left', '#565078', [windowX - 0.88, 2.42, -2.61], [0.075, 1.4, 0.12]);
+  box(world, 'window-frame-right', '#565078', [windowX + 0.88, 2.42, -2.61], [0.075, 1.4, 0.12]);
   box(world, 'window-crossbar', '#565078', [windowX, 2.42, -2.6], [0.04, 1.35, 0.11]);
 
   const starCount = 64;
   const starPositions = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount; i += 1) {
-    starPositions[i * 3] = windowX - 0.95 + Math.random() * 1.9;
+    starPositions[i * 3] = windowX - 0.8 + Math.random() * 1.6;
     starPositions[i * 3 + 1] = 1.86 + Math.random() * 1.18;
     starPositions[i * 3 + 2] = -2.652;
   }
@@ -146,11 +262,12 @@ function createRoom() {
     new THREE.MeshBasicMaterial({ color: '#eef1ff', transparent: true, opacity: 0 })
   );
   moon.name = 'sky-moon';
-  moon.position.set(windowX + 0.62, 2.9, -2.648);
+  moon.position.set(windowX + 0.55, 2.9, -2.648);
   world.add(moon);
 
+  // Кровать вдоль правой стены, изголовье у задней — она оказывается и у окна.
   const bed = new THREE.Group();
-  bed.position.set(-1.47, 0, 0.18);
+  bed.position.set(2.21, 0, -1.55);
   world.add(bed);
   box(bed, 'bed-frame', '#272239', [0, 0.28, 0], [1.52, 0.38, 2.05]);
   box(bed, 'bed-mattress', '#b5a6d2', [0, 0.53, 0], [1.5, 0.2, 1.98]);
@@ -170,42 +287,47 @@ function createRoom() {
     }
   }
 
+  // Рабочее место под окном, сдвинуто к кровати: монитор справа (на нём идут
+  // слайды AI-аналитики), ноутбук слева, за ним и садится Nova — так она не
+  // заслоняет экран. Стол прижат к задней стене и пол больше не занимает.
   const desk = new THREE.Group();
-  desk.position.set(1.47, 0, -0.32);
+  desk.position.set(0.6, 0, -2.3);
   world.add(desk);
-  box(desk, 'desk-top', '#29273e', [0, 0.9, 0], [1.42, 0.13, 0.78]);
-  for (const x of [-0.58, 0.58]) {
-    for (const z of [-0.27, 0.27]) {
-      box(desk, `desk-leg-${x}-${z}`, '#51466e', [x, 0.45, z], [0.07, 0.88, 0.07]);
+  box(desk, "desk-top", "#29273e", [0, 0.86, 0], [1.5, 0.11, 0.46]);
+  for (const x of [-0.7, 0.7]) {
+    for (const z of [-0.15, 0.15]) {
+      box(desk, "desk-leg-" + x + "-" + z, "#51466e", [x, 0.4, z], [0.06, 0.8, 0.06]);
     }
   }
-  box(desk, 'monitor-case', '#1b1b31', [0, 1.42, -0.27], [0.88, 0.63, 0.08], {
+  const monitorX = 0.24;
+  box(desk, "monitor-case", "#1b1b31", [monitorX, 1.38, -0.14], [0.9, 0.62, 0.06], {
     metalness: 0.22
   });
-  box(desk, 'monitor-screen', '#102b3d', [0, 1.43, -0.222], [0.78, 0.51, 0.012], {
-    emissive: '#12627b',
-    emissiveIntensity: 0.9,
-    roughness: 0.25
+  const monitorScreen = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.82, 0.53),
+    new THREE.MeshBasicMaterial({ map: monitorTexture, toneMapped: false })
+  );
+  monitorScreen.name = "monitor-screen";
+  monitorScreen.position.set(monitorX, 1.38, -0.108);
+  desk.add(monitorScreen);
+  box(desk, "monitor-stand", "#56506c", [monitorX, 1.06, -0.13], [0.07, 0.22, 0.07]);
+  box(desk, "laptop-base", "#17182a", [-0.44, 0.93, 0.02], [0.46, 0.025, 0.3]);
+  box(desk, "laptop-lid", "#1d1e33", [-0.44, 1.06, -0.11], [0.46, 0.26, 0.02]);
+  box(desk, "laptop-glow", "#58e3ee", [-0.44, 1.06, -0.098], [0.4, 0.2, 0.008], {
+    emissive: "#12627b",
+    emissiveIntensity: 1.1
   });
-  for (let i = 0; i < 4; i += 1) {
-    box(desk, `screen-code-${i}`, i % 2 ? '#ab77ff' : '#58e3ee',
-      [-0.25 + (i % 2) * 0.1, 1.55 - i * 0.075, -0.21], [0.22 + (i % 3) * 0.08, 0.018, 0.009], {
-        emissive: i % 2 ? '#7338cf' : '#129db1',
-        emissiveIntensity: 0.9
-      });
-  }
-  box(desk, 'monitor-stand', '#56506c', [0, 1.09, -0.26], [0.08, 0.25, 0.08]);
-  box(desk, 'keyboard', '#17182a', [0, 1.0, 0.16], [0.58, 0.035, 0.2]);
+  box(desk, "keyboard", "#17182a", [0.3, 0.935, 0.14], [0.5, 0.03, 0.18]);
   for (let i = 0; i < 5; i += 1) {
-    box(desk, `keyboard-light-${i}`, i % 2 ? '#55e2ee' : '#a66cff',
-      [-0.22 + i * 0.11, 1.022, 0.16], [0.055, 0.008, 0.015], {
-        emissive: i % 2 ? '#2294ab' : '#7534c0',
+    box(desk, "keyboard-light-" + i, i % 2 ? "#55e2ee" : "#a66cff",
+      [0.1 + i * 0.1, 0.953, 0.14], [0.05, 0.007, 0.013], {
+        emissive: i % 2 ? "#2294ab" : "#7534c0",
         emissiveIntensity: 1
       });
   }
 
   const doorPivot = new THREE.Group();
-  doorPivot.position.set(1.19, 0.04, -2.57);
+  doorPivot.position.set(-2.05, 0.04, -2.57);
   world.add(doorPivot);
   box(doorPivot, 'door-panel', '#28223a', [0.43, 1.39, 0], [0.86, 2.7, 0.1]);
   box(doorPivot, 'door-inset', '#342746', [0.43, 1.45, 0.065], [0.68, 2.36, 0.035], {
@@ -217,22 +339,23 @@ function createRoom() {
     emissiveIntensity: 1.2
   });
   doorPivot.userData.closedRotation = doorPivot.rotation.y;
-  box(world, 'door-frame-top', '#5b4a79', [1.65, 2.88, -2.67], [1.02, 0.12, 0.16]);
-  box(world, 'door-frame-left', '#5b4a79', [1.15, 1.45, -2.67], [0.12, 2.85, 0.16]);
-  box(world, 'door-frame-right', '#5b4a79', [2.15, 1.45, -2.67], [0.12, 2.85, 0.16]);
-  box(world, 'door-threshold', '#61dfea', [1.65, 0.04, -2.56], [0.98, 0.08, 0.3], {
+  box(world, 'door-frame-top', '#5b4a79', [-1.65, 2.88, -2.67], [1.02, 0.12, 0.16]);
+  box(world, 'door-frame-left', '#5b4a79', [-2.15, 1.45, -2.67], [0.12, 2.85, 0.16]);
+  box(world, 'door-frame-right', '#5b4a79', [-1.15, 1.45, -2.67], [0.12, 2.85, 0.16]);
+  box(world, 'door-threshold', '#61dfea', [-1.65, 0.04, -2.56], [0.98, 0.08, 0.3], {
     emissive: '#168caa',
     emissiveIntensity: 0.95
   });
 
-  const plantPot = cylinder(world, 'plant-pot', '#433152', [-2.04, 0.28, -1.94], 0.23, 0.18, 0.5);
+  // Куст ушёл в левый угол, вплотную к двери.
+  const plantPot = cylinder(world, 'plant-pot', '#433152', [-2.62, 0.28, -2.3], 0.23, 0.18, 0.5);
   plantPot.rotation.z = Math.PI;
   for (let i = 0; i < 5; i += 1) {
     const leaf = new THREE.Mesh(
       new THREE.ConeGeometry(0.12, 0.58 + (i % 2) * 0.2, 7),
       material(i % 2 ? '#5f4c9a' : '#377878', { emissive: '#241d46', emissiveIntensity: 0.35 })
     );
-    leaf.position.set(-2.04 + Math.cos(i * 1.25) * 0.14, 0.72 + (i % 2) * 0.08, -1.94 + Math.sin(i * 1.25) * 0.14);
+    leaf.position.set(-2.62 + Math.cos(i * 1.25) * 0.14, 0.72 + (i % 2) * 0.08, -2.3 + Math.sin(i * 1.25) * 0.14);
     leaf.rotation.z = Math.cos(i * 1.25) * 0.4;
     world.add(leaf);
   }
@@ -244,14 +367,14 @@ function createRoom() {
     emissive: '#179cb2',
     emissiveIntensity: 0.9
   });
-  deliveryBox.position.set(1.58, 0.08, -2.22);
+  deliveryBox.position.set(-1.58, 0.08, -2.22);
   deliveryBox.visible = false;
   world.add(deliveryBox);
 
   const hotspots = {
-    bed: new THREE.Vector3(-1.5, 0.95, 0.12),
-    desk: new THREE.Vector3(1.47, 1.35, -0.3),
-    door: new THREE.Vector3(1.65, 1.6, -2.5)
+    bed: new THREE.Vector3(2.21, 0.95, -1.55),
+    desk: new THREE.Vector3(0.6, 1.3, -2.3),
+    door: new THREE.Vector3(-1.65, 1.6, -2.5)
   };
   const buttons = Array.from(host.querySelectorAll('[data-room-action]'));
   for (const button of buttons) {
@@ -293,9 +416,9 @@ let frameId = 0;
 let autoTimer = 0;
 let rendererReady = false;
 const furnitureBounds = [
-  { minX: -2.23, maxX: -0.71, minZ: -0.85, maxZ: 1.21 },
-  { minX: 0.76, maxX: 2.18, minZ: -0.71, maxZ: 0.07 },
-  { minX: -2.35, maxX: -1.73, minZ: -2.25, maxZ: -1.63 }
+  { minX: 1.45, maxX: 2.97, minZ: -2.6, maxZ: -0.5 },
+  { minX: -0.15, maxX: 1.35, minZ: -2.55, maxZ: -2.05 },
+  { minX: -2.92, maxX: -2.32, minZ: -2.6, maxZ: -2.0 }
 ];
 const characterClearance = 0.27;
 const walkBounds = { minX: -2.68, maxX: 2.68, minZ: -2.32, maxZ: 2.05 };
@@ -705,7 +828,7 @@ function attachDeliveryBox(attach) {
     deliveryBox.userData.attachedTo.remove(deliveryBox);
     delete deliveryBox.userData.attachedTo;
   }
-  deliveryBox.position.set(1.58, 0.08, -2.22);
+  deliveryBox.position.set(-1.58, 0.08, -2.22);
   deliveryBox.rotation.set(0, 0.4, 0);
 }
 
@@ -717,12 +840,12 @@ function makeTask(action, options = {}) {
   taskDurationSeconds = Math.max(0, Number(options.durationSeconds) || 0);
   phaseDeadline = 0;
   const taskPositions = {
-    bed: new THREE.Vector3(-0.5, 0, 1.55),
-    sleep: new THREE.Vector3(-0.5, 0, 1.55),
-    desk: new THREE.Vector3(1.15, 0, 0.38),
-    door: new THREE.Vector3(1.5, 0, -1.55),
-    toilet: new THREE.Vector3(1.5, 0, -1.55),
-    delivery: new THREE.Vector3(1.5, 0, -1.55)
+    bed: new THREE.Vector3(2.21, 0, -0.15),
+    sleep: new THREE.Vector3(2.21, 0, -0.15),
+    desk: new THREE.Vector3(0.16, 0, -1.55),
+    door: new THREE.Vector3(-1.55, 0, -1.55),
+    toilet: new THREE.Vector3(-1.55, 0, -1.55),
+    delivery: new THREE.Vector3(-1.55, 0, -1.55)
   };
   routeTargets = findPath(characterRoot.position, taskPositions[action]);
   if (!routeTargets) {
@@ -803,7 +926,7 @@ function arriveAtTask() {
     taskPhase = 'delivery-door';
     actionLoop('Interact');
     phaseTimer = 1.7;
-    room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation - 1.1;
+    room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation + 1.1;
     if (room.deliveryBox) room.deliveryBox.visible = true;
     setRoomStatus('Получает посылку', true);
     return;
@@ -812,7 +935,7 @@ function arriveAtTask() {
     taskPhase = 'door-use';
     actionLoop('Interact');
     phaseTimer = 1.4;
-    room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation - 1.1;
+    room.doorPivot.rotation.y = room.doorPivot.userData.closedRotation + 1.1;
     setRoomStatus(task === 'toilet' ? 'Ушла в туалет' : 'Ненадолго вышла за дверь', true);
   }
 }
@@ -858,12 +981,12 @@ function updateTask(delta) {
     const eased = progress * progress * (3 - 2 * progress);
     characterRoot.position.lerpVectors(
       phaseStartPosition,
-      new THREE.Vector3(-1.47, -0.15, 0.18),
+      new THREE.Vector3(2.21, -0.15, -1.55),
       eased
     );
     posePivot.rotation.x = phaseStartRotation + (-Math.PI / 2 - phaseStartRotation) * eased;
     if (phaseTimer <= 0) {
-      characterRoot.position.set(-1.47, -0.15, 0.18);
+      characterRoot.position.set(2.21, -0.15, -1.55);
       posePivot.rotation.x = -Math.PI / 2;
       taskPhase = 'bed-rest';
       actionLoop('Idle_Loop');
@@ -887,12 +1010,12 @@ function updateTask(delta) {
     const eased = progress * progress * (3 - 2 * progress);
     characterRoot.position.lerpVectors(
       phaseStartPosition,
-      new THREE.Vector3(-0.5, 0, 1.55),
+      new THREE.Vector3(2.21, 0, -0.15),
       eased
     );
     posePivot.rotation.x = phaseStartRotation * (1 - eased);
     if (phaseTimer <= 0) {
-      characterRoot.position.set(-0.5, 0, 1.55);
+      characterRoot.position.set(2.21, 0, -0.15);
       posePivot.rotation.x = 0;
       walkHomeFromBed();
     }
@@ -1007,6 +1130,7 @@ function animate() {
   }
   const delta = Math.min(clock.getDelta(), 0.05);
   applyDayNight(delta);
+  updateMonitorSlides(delta);
   if (mixer) mixer.update(delta);
   updateTask(delta);
   applyMoodIdle(clock.elapsedTime);
@@ -1097,9 +1221,9 @@ async function initialize() {
   const missing = required.filter((name) => !actions[name]);
   if (missing.length) throw new Error(`Missing 3D animation clips: ${missing.join(', ')}`);
 
-  const bedCollider = box(world, 'bed-hotspot', '#000000', [-1.47, 0.68, 0.2], [1.8, 1.4, 2.3]);
-  const deskCollider = box(world, 'desk-hotspot', '#000000', [1.47, 1.15, -0.32], [1.65, 1.8, 1.1]);
-  const doorCollider = box(world, 'door-hotspot', '#000000', [1.65, 1.45, -2.54], [1.1, 2.9, 0.5]);
+  const bedCollider = box(world, 'bed-hotspot', '#000000', [2.21, 0.68, -1.55], [1.9, 1.4, 2.4]);
+  const deskCollider = box(world, 'desk-hotspot', '#000000', [0.6, 1.2, -2.3], [1.7, 1.9, 0.8]);
+  const doorCollider = box(world, 'door-hotspot', '#000000', [-1.65, 1.45, -2.54], [1.1, 2.9, 0.5]);
   for (const [object, action] of [[bedCollider, 'bed'], [deskCollider, 'desk'], [doorCollider, 'door']]) {
     object.material.transparent = true;
     object.material.opacity = 0;
@@ -1138,6 +1262,7 @@ window.pxaxRoom3d = {
   setHour,
   setMood,
   setWardrobe,
+  setMonitorSlides,
   emote,
   speak,
   screenshot() {

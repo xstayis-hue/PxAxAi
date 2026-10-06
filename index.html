@@ -141,7 +141,9 @@ body::before{
 .care-open,.chat-care{border:1px solid rgba(92,225,230,.25);border-radius:11px;background:rgba(12,20,32,.88);color:#baf8f5;font:600 12px/1.2 system-ui,sans-serif;cursor:pointer}
 .care-open{width:100%;max-width:340px;margin:10px auto 0;padding:10px}
 .care-open:disabled,.chat-care:disabled{opacity:.6;cursor:default}
-.home-apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+/* Плитка AI-аналитики убрана: блок живёт на экране монитора в комнате.
+   Остались VPN и VPHX — их не трогаем. */
+.home-apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
 .btn-main{
   width:100%;padding:14px;border:none;border-radius:14px;font-family:inherit;
   font-size:15px;font-weight:650;cursor:pointer;color:#fff;
@@ -329,24 +331,33 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
 .voice-toggle.off{opacity:.5;color:#8a84a0;border-color:rgba(140,120,255,.2)}
 .voice-toggle .ic{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block}
 
-/* laptop predictions widget */
+/* AI-аналитика на подходе к ноутбуку: панель выезжает слева и растянута по
+   высоте комнаты. Стол с монитором стоит справа от неё, поэтому экран со
+   слайдами остаётся виден — этого не было у прежней карточки по центру. */
 #laptop-widget{
-  position:absolute;left:50%;top:42%;transform:translate(-50%,-100%);width:212px;z-index:4;
-  padding:9px 10px 8px;border-radius:12px;background:rgba(6,8,18,.88);
-  border:1px solid rgba(92,225,230,.35);box-shadow:0 0 22px rgba(92,225,230,.16);
-  backdrop-filter:blur(10px);pointer-events:auto;opacity:0;transition:opacity .25s;
-  font:11px/1.4 system-ui,sans-serif;
+  position:absolute;left:0;top:110px;bottom:10px;
+  width:min(168px,42vw);z-index:4;padding:10px 10px 9px;
+  border-radius:0 14px 14px 0;background:rgba(6,8,18,.9);
+  border:1px solid rgba(92,225,230,.3);border-left:none;
+  box-shadow:0 8px 26px rgba(0,0,0,.45),0 0 22px rgba(92,225,230,.12);
+  backdrop-filter:blur(10px);pointer-events:auto;
+  transform:translateX(-104%);opacity:0;
+  transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s;
+  font:11px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;
 }
-#laptop-widget.vis{opacity:1}
-.lw-head{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;letter-spacing:.8px;color:#7ff0ea;margin-bottom:7px}
+#laptop-widget.vis{transform:translateX(0);opacity:1}
+.lw-head{display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:700;letter-spacing:.5px;color:#7ff0ea;margin-bottom:7px}
 .lw-dot{width:6px;height:6px;border-radius:50%;background:#5ce1f1;box-shadow:0 0 8px #5ce1f1;animation:blink 1.6s ease-in-out infinite}
+.lw-rows{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
+.lw-rows::-webkit-scrollbar{display:none}
 .lw-row{padding:5px 6px;border-radius:8px;background:rgba(255,255,255,.045);margin-bottom:5px}
 .lw-row:last-child{margin-bottom:0}
+.lw-row.value small{color:#ffd27a}
 .lw-row strong{display:block;font-size:10px;color:#ece7fa;letter-spacing:.2px}
-.lw-row small{display:block;margin-top:2px;font-size:8.5px;color:#9a94b5}
+.lw-row small{display:block;margin-top:2px;font-size:9px;color:#9a94b5}
 .lw-pct{color:var(--b);font-weight:700}
-.lw-open{width:100%;margin-top:7px;padding:7px;border:1px solid rgba(92,225,230,.4);border-radius:9px;background:rgba(18,87,102,.35);color:#c5fbff;font:700 9.5px system-ui,sans-serif;letter-spacing:.5px;cursor:pointer}
-body.chat-open #laptop-widget{display:none}
+.lw-open{width:100%;margin-top:7px;padding:7px;border:1px solid rgba(92,225,230,.4);border-radius:9px;background:rgba(18,87,102,.35);color:#c5fbff;font:700 9.5px system-ui,sans-serif;letter-spacing:.4px;cursor:pointer}
+body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-events:none}
 
 /* care modal: wardrobe, achievements */
 .wardrobe-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -387,7 +398,7 @@ body.chat-open #laptop-widget{display:none}
   <div id="scene-loading">ЗАГРУЖАЮ 3D-КОМНАТУ…</div>
   <div id="scene-error" role="alert" hidden></div>
   <div id="laptop-widget" hidden>
-    <div class="lw-head"><span class="lw-dot"></span>PXAX · AI-ПРОГНОЗЫ</div>
+    <div class="lw-head"><span class="lw-dot"></span>PXAX · AI-АНАЛИТИКА</div>
     <div class="lw-rows" id="lw-rows"></div>
     <button type="button" class="lw-open" id="lw-open">Открыть полный список →</button>
   </div>
@@ -417,11 +428,6 @@ body.chat-open #laptop-widget{display:none}
           <span class="app-icon" aria-hidden="true"><svg class="ic"><use href="#i-bolt"/></svg></span>
           <span class="glitch-title">VPN</span>
           <span class="glitch-sub">Vph</span>
-        </button>
-        <button type="button" class="btn-apps" id="btn-apps" aria-label="Открыть AI-прогнозы">
-          <span class="app-icon" aria-hidden="true"><svg class="ic"><use href="#i-spark"/></svg></span>
-          <span class="glitch-title">PXAXBET</span>
-          <span class="glitch-sub">AI-Прогнозы</span>
         </button>
         <button type="button" class="btn-apps coin" id="btn-coin" aria-label="Открыть VibeCoin">
           <span class="app-icon" aria-hidden="true"><svg class="ic"><use href="#i-coin2"/></svg></span>
@@ -678,7 +684,6 @@ body.chat-open #laptop-widget{display:none}
     } catch (e) {}
     window.open(url, '_blank', 'noopener');
   }
-  $('btn-apps').onclick = function () { openApp(CFG.PREDICTIONS_LINK, true); };
   $('btn-vpn').onclick = function () { openApp(CFG.VPN_LINK, true); };
   $('btn-coin').onclick = function () { openApp(CFG.COIN_LINK, true); };
 
@@ -1006,7 +1011,13 @@ body.chat-open #laptop-widget{display:none}
   var WARDROBE_KEY = 'pxax_ai_wardrobe_v1';
   var GAMES_KEY = 'pxax_ai_games_v1';
   var VOICE_KEY = 'pxax_ai_voice_v1';
-  var PRED_CACHE_KEY = 'pxax_ai_pred_cache_v1';
+  var PRED_CACHE_KEY = 'pxax_ai_analytics_cache_v2';
+  // слайды для экрана монитора: прогнозы дня вперемешку с промо экосистемы
+  var ECOSYSTEM_PROMO = [
+    { kind: 'promo', tag: 'ПАРТНЁР · 18+', title: 'Бонус на депозит', sub: 'Промокод при регистрации', code: 'PXAXBET2026' },
+    { kind: 'promo', tag: 'VIBE COIN', title: 'VPHX pre-launch', sub: 'Мем-токен экосистемы PXAX', code: 'PXAX-VPH' },
+    { kind: 'promo', tag: 'VPN', title: 'Vph подписка', sub: 'VPN для Telegram', code: 'PXAX-NOW' }
+  ];
   var GAME_COOLDOWN_MS = 30 * 60000;
 
   var progress = { xp: 0, achievements: {}, counters: {}, named: false };
@@ -1175,9 +1186,14 @@ body.chat-open #laptop-widget{display:none}
           at: Date.now(),
           date: data && data.date || '',
           model: data && data.model || '',
-          top: arr.slice(0, 3).map(function (p) {
+          top: arr.slice(0, 5).map(function (p) {
             return {
               title: (p.home || p.id || '') + ' — ' + (p.away || ''),
+              league: p.lgName || '',
+              market: p.market || '',
+              confidence: p.confidence || 0,
+              odds: p.odds || 0,
+              value: !!p.value,
               sub: [p.lgName, p.market, (p.confidence ? p.confidence + '%' : '')].filter(Boolean).join(' · '),
               time: p.time || ''
             };
@@ -1185,6 +1201,7 @@ body.chat-open #laptop-widget{display:none}
         };
         try { storage.setItem(PRED_CACHE_KEY, JSON.stringify(predCache)); } catch (e2) {}
         buildLaptopRows();
+        pushMonitorSlides();
       } catch (e) {}
     });
   }
@@ -1195,7 +1212,7 @@ body.chat-open #laptop-widget{display:none}
     wrap.innerHTML = '';
     predCache.top.forEach(function (p) {
       var row = document.createElement('div');
-      row.className = 'lw-row';
+      row.className = 'lw-row' + (p.value ? ' value' : '');
       var strong = document.createElement('strong');
       strong.textContent = p.title;
       var small = document.createElement('small');
@@ -1206,8 +1223,27 @@ body.chat-open #laptop-widget{display:none}
     });
     var head = laptopWidgetEl.querySelector('.lw-head');
     if (head && predCache.date) {
-      head.childNodes[1] && (head.childNodes[1].nodeValue = 'PXAX · AI-ПРОГНОЗЫ · ' + predCache.date);
+      head.childNodes[1] && (head.childNodes[1].nodeValue = 'PXAX · AI-АНАЛИТИКА · ' + predCache.date);
     }
+  }
+  /* Чередуем прогноз и промо: монитор показывает не только ставки, но и
+     партнёрские блоки — это и есть реклама внутри комнаты. */
+  function pushMonitorSlides() {
+    if (!window.pxaxRoom3d || !window.pxaxRoom3d.setMonitorSlides) return;
+    var preds = (predCache && predCache.top) || [];
+    var promo = ECOSYSTEM_PROMO.slice();
+    var slides = [];
+    for (var i = 0; i < Math.max(preds.length, promo.length); i++) {
+      if (preds[i]) {
+        slides.push({
+          kind: 'pick', league: preds[i].league, title: preds[i].title,
+          market: preds[i].market, confidence: preds[i].confidence,
+          odds: preds[i].odds, value: preds[i].value
+        });
+      }
+      if (promo[i]) slides.push(promo[i]);
+    }
+    window.pxaxRoom3d.setMonitorSlides({ slides: slides, date: (predCache && predCache.date) || '' });
   }
   window.pxaxLaptopWidget = function (on) {
     if (laptopWidgetOn === on) return;
@@ -1215,6 +1251,7 @@ body.chat-open #laptop-widget{display:none}
     if (!laptopWidgetEl) return;
     if (on) {
       if (!predCache) loadPredictions();
+      else { buildLaptopRows(); pushMonitorSlides(); }
       laptopWidgetEl.hidden = false;
       requestAnimationFrame(function () { laptopWidgetEl.classList.add('vis'); });
     } else {
@@ -1222,16 +1259,13 @@ body.chat-open #laptop-widget{display:none}
       setTimeout(function () { if (!laptopWidgetOn) laptopWidgetEl.hidden = true; }, 260);
     }
   };
-  window.pxaxRoomWidget = function (x, y, visible) {
-    if (!laptopWidgetEl) return;
-    laptopWidgetEl.style.left = x + 'px';
-    laptopWidgetEl.style.top = y + 'px';
-    laptopWidgetEl.style.transform = 'translate(-50%,-100%)';
-    if (visible !== false) laptopWidgetEl.classList.add('vis');
-  };
+  // панель прижата к левому краю в CSS: сцена больше не двигает её за персонажем,
+  // иначе она снова накрывала бы стол с монитором
+  window.pxaxRoomWidget = function () {};
   $('lw-open').addEventListener('click', function () {
     try { window.open(CFG.PREDICTIONS_LINK, '_blank', 'noopener'); } catch (e) {}
   });
+  if (predCache) setTimeout(pushMonitorSlides, 0);
 
   /* ---- Гардероб: набор зависит от выбранного компаньона (pxax_ai_wardrobe_v1) ---- */
   var WARDROBE_SETS = {
@@ -2061,7 +2095,7 @@ body.chat-open #laptop-widget{display:none}
 
   function linkLabel(url) {
     if (url === CFG.VPN_LINK) return '⌁ Открыть VPN';
-    if (url === CFG.PREDICTIONS_LINK) return '✦ Открыть AI-прогнозы';
+    if (url === CFG.PREDICTIONS_LINK) return '✦ Открыть AI-Аналитику';
     if (url === CFG.COIN_LINK) return '◈ Открыть VibeCoin';
     return 'Открыть ссылку';
   }
