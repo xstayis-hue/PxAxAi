@@ -933,7 +933,20 @@ function updateTask(delta) {
 function positionHotspots() {
   // камера статична: пишем стили в DOM только при реальном изменении, а не каждый кадр
   for (const button of room.buttons) {
-    const point = room.hotspots[button.dataset.roomAction].clone().project(camera);
+    // Кнопки хотспотов живут в index.html, а их точки — в room.hotspots здесь,
+    // и списки легко расходятся. Без проверки обращение к несуществующей точке
+    // бросает исключение в первом же кадре, цикл рвётся до render(), и комната
+    // остаётся пустым холстом — поэтому отсутствующую кнопку просто прячем.
+    const hotspot = room.hotspots[button.dataset.roomAction];
+    if (!hotspot) {
+      if (!button._orphan) {
+        button._orphan = true;
+        button.hidden = true;
+        button.disabled = true;
+      }
+      continue;
+    }
+    const point = hotspot.clone().project(camera);
     const x = THREE.MathUtils.clamp((point.x * 0.5 + 0.5) * host.clientWidth, 50, host.clientWidth - 50);
     const y = THREE.MathUtils.clamp((-point.y * 0.5 + 0.5) * host.clientHeight, 28, host.clientHeight - 30);
     const hidden = mode !== 'room' || point.z < -1 || point.z > 1;
