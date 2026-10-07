@@ -1,6 +1,10 @@
 /* =========================================================
    PXAX · Nova — Cloudflare Worker
-   v0.5 «живой компаньон»
+   v0.6 «слышит, видит, помнит»
+   - ГОЛОС: распознавание речи через Workers AI (Whisper) — можно говорить, а не печатать
+   - ЗРЕНИЕ: фото от пользователя уходит в мультимодальную модель
+   - ПАМЯТЬ: эпизоды ищутся по смыслу (эмбеддинги bge-m3), а не по совпадению слов;
+     при недоступности эмбеддингов — прежний поиск по словам
    - жизнь тикает НА СЕРВЕРЕ: потребности растут по реальному времени,
      пока приложение закрыто (advanceNeeds), сон/туалет-окна
    - память: факты + ЭПИЗОДЫ диалога с релевантным recall в промпт
@@ -23,11 +27,20 @@ const cors = {
 };
 
 // Качество важнее скорости: пробуем большую модель первой, маленькие — запасные.
+// Llama 4 Scout заметно сильнее трёшки в диалоге, поэтому стоит первой.
 const MODELS = [
+  '@cf/meta/llama-4-scout-17b-16e-instruct',
   '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
   '@cf/meta/llama-3.1-8b-instruct-fast',
   '@cf/meta/llama-3.2-3b-instruct',
 ];
+// Модели специального назначения: для них НЕ перебираем весь список —
+// на картинке или звуке мелкие текстовые модели бессмысленны.
+const VISION_MODEL = '@cf/meta/llama-3.2-11b-vision-instruct';
+const STT_MODEL = '@cf/openai/whisper-large-v3-turbo';
+const EMBED_MODEL = '@cf/baai/bge-m3';
+const MAX_IMAGE_CHARS = 6 * 1024 * 1024; // ~4.5 МБ картинки в base64
+const MAX_AUDIO_CHARS = 8 * 1024 * 1024;
 
 const MAX_MESSAGE = 3000;
 const MAX_HISTORY = 20;
@@ -249,6 +262,62 @@ function tokenize(text) {
 }
 
 // релевантный recall: пересечение слов + свежесть (без внешних векторов)
+/* --- эмбеддинги: память ищется по смыслу, а не по совпадению слов --- */
+function cosine(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length || !a.length) return 0;
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    const x = Number(a[i]) || 0, y = Number(b[i]) || 0;
+    dot += x * y; na += x * x; nb += y * y;
+  }
+  if (!na || !nb) return 0;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+
+async function embedText(env, text) {
+  const clean = String(text || '').trim().slice(0, 512);
+  if (!clean || !env.AI) return null;
+  try {
+    const r = await env.AI.run(EMBED_MODEL, { text: [clean] });
+    const vec = (r && r.data && r.data[0]) || (r && r.embedding) || null;
+    if (Array.isArray(vec) && vec.length) return vec;
+  } catch (e) {
+    await bumpError(env, 'embed');
+  }
+  return null;
+}
+
+/* Эпизоды обрастают векторами лениво: считаем только те, у которых их ещё нет,
+   и не больше нескольких за один запрос — иначе ответ начнёт запаздывать. */
+async function embedEpisodes(env, memory, maxCount = 3) {
+  const eps = Array.isArray(memory && memory.episodes) ? memory.episodes : [];
+  let made = 0;
+  for (const e of eps) {
+    if (made >= maxCount) break;
+    if (Array.isArray(e.emb) && e.emb.length) continue;
+    const vec = await embedText(env, (e.u || '') + ' ' + (e.a || ''));
+    if (!vec) break;
+    e.emb = vec;
+    made++;
+  }
+  return made;
+}
+
+async function recallEpisodesSemantic(env, memory, query, limit = EPISODE_RECALL) {
+  const eps = (memory && memory.episodes) || [];
+  const withVec = eps.filter((e) => Array.isArray(e.emb) && e.emb.length);
+  if (!withVec.length) return null;
+  const qv = await embedText(env, query);
+  if (!qv) return null;
+  const scored = withVec.map((e) => ({ e, score: cosine(qv, e.emb) }));
+  const best = scored
+    .filter((s) => s.score >= 0.55) // ниже — уже не «по теме», а случайное соседство
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((s) => s.e);
+  return best.length ? best : null;
+}
+
 function recallEpisodes(memory, query, limit = EPISODE_RECALL) {
   const eps = Array.isArray(memory && memory.episodes) ? memory.episodes : [];
   if (!eps.length) return [];
@@ -328,6 +397,14 @@ function buildSystemPrompt(body, memory, recalled) {
   return lines.join('\n');
 }
 
+// Картинка приходит от клиента уже сжатой (canvas → JPEG) в base64 без префикса.
+function imagePayload(body) {
+  const raw = body && typeof body.imageBase64 === 'string' ? body.imageBase64 : '';
+  const clean = raw.replace(/^data:image\/[a-z+]+;base64,/i, '').trim();
+  if (!clean || clean.length > MAX_IMAGE_CHARS) return null;
+  return clean;
+}
+
 function normalizeMessages(body, memory, recalled) {
   const msgs = [];
   msgs.push({ role: 'system', content: buildSystemPrompt(body, memory, recalled) });
@@ -337,7 +414,20 @@ function normalizeMessages(body, memory, recalled) {
     const role = m.role === 'user' ? 'user' : 'assistant';
     msgs.push({ role, content: String(m.text).slice(0, 1200) });
   }
-  msgs.push({ role: 'user', content: String(body.message || '').slice(0, MAX_MESSAGE) });
+  const text = String(body.message || '').slice(0, MAX_MESSAGE);
+  const image = imagePayload(body);
+  if (image) {
+    // мультимодальный формат Cloudflare: массив частей вместо строки
+    msgs.push({
+      role: 'user',
+      content: [
+        { type: 'text', text: text || 'Посмотри, что я прислал.' },
+        { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + image } }
+      ]
+    });
+    return msgs;
+  }
+  msgs.push({ role: 'user', content: text });
   return msgs;
 }
 
@@ -624,6 +714,51 @@ async function runLLM(env, messages, maxTokens) {
   return null;
 }
 
+/* Зрение: единственная модель, без перебора — иначе картинка уйдёт
+   текстовой модели, которая её просто не увидит. */
+async function runVision(env, messages) {
+  if (!env.AI) return null;
+  try {
+    const result = await env.AI.run(VISION_MODEL, { messages, max_tokens: 512 });
+    const reply = (result && (result.response || result.description || result.result)) || (typeof result === 'string' ? result : '');
+    if (reply) return { text: String(reply).trim(), model: VISION_MODEL };
+  } catch (err) {
+    await bumpError(env, 'vision');
+  }
+  return null;
+}
+
+/* =========================================================
+   Голосовой ввод (action: stt) — распознавание речи
+   Клиент записывает короткое аудио (MediaRecorder) и присылает base64.
+   Формат отправляем как есть: Whisper на стороне Workers AI сам разбирает
+   webm/ogg/mp4, поэтому конвертация на клиенте не нужна.
+   ========================================================= */
+async function handleStt(env, body) {
+  if (!env.AI) return json({ ok: false, error: 'нет binding AI' });
+  const raw = body && typeof body.audioBase64 === 'string' ? body.audioBase64 : '';
+  const clean = raw.replace(/^data:audio\/[a-z0-9.+-]+;base64,/i, '').trim();
+  if (!clean) return json({ ok: false, error: 'пустое аудио' });
+  if (clean.length > MAX_AUDIO_CHARS) return json({ ok: false, error: 'аудио слишком длинное' });
+  let bin;
+  try {
+    bin = Buffer.from(clean, 'base64');
+  } catch (e) {
+    return json({ ok: false, error: 'битый base64' });
+  }
+  if (!bin.length) return json({ ok: false, error: 'пустое аудио' });
+  try {
+    const result = await env.AI.run(STT_MODEL, { audio: [...new Uint8Array(bin)] });
+    const text = (result && (result.text || result.transcription)) || '';
+    const cleanText = String(text).trim();
+    if (!cleanText) return json({ ok: false, error: 'речь не распознана' });
+    return json({ ok: true, text: cleanText.slice(0, 500), model: STT_MODEL });
+  } catch (e) {
+    await bumpError(env, 'stt');
+    return json({ ok: false, error: 'распознавание недоступно' });
+  }
+}
+
 /* =========================================================
    LLM-консолидация памяти (раз в CONSOLIDATE_EVERY реплик)
    ========================================================= */
@@ -753,7 +888,7 @@ function sseEncode(event, data) {
   return `event: ${event}\ndata: ${payload}\n\n`;
 }
 
-async function handleStream(env, messages, onDone) {
+async function handleStream(env, messages, onDone, hasImage) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -772,7 +907,10 @@ async function handleStream(env, messages, onDone) {
       };
 
       let lastErr = '';
-      for (const MODEL of MODELS) {
+      // С картинкой перебирать текстовые модели бессмысленно: у неё свой формат,
+      // поэтому сразу идём в модель зрения, а при её отказе честно сообщаем.
+      const models = hasImage ? [VISION_MODEL] : MODELS;
+      for (const MODEL of models) {
         try {
           const result = await env.AI.run(MODEL, { messages, max_tokens: 512, stream: true });
           const reader = result && typeof result.getReader === 'function' ? result.getReader() : null;
@@ -820,8 +958,8 @@ async function handleStream(env, messages, onDone) {
   return new Response(stream, { headers: sseHeaders() });
 }
 
-async function handleJson(env, messages, onDone) {
-  const generated = await runLLM(env, messages, 512);
+async function handleJson(env, messages, onDone, hasImage) {
+  const generated = hasImage ? await runVision(env, messages) : await runLLM(env, messages, 512);
   if (generated) {
     try { await onDone(generated.text); } catch (e) { await bumpError(env, 'persist-json'); }
     return json({ reply: generated.text, model: generated.model });
@@ -1001,7 +1139,7 @@ export default {
     if (request.method === 'GET') {
       const url = new URL(request.url);
       if (url.searchParams.get('stats') === '1') return json({ ok: true, stats: await readStats(env), now: Date.now() });
-      return new Response('pxax-ai ok · v0.5', { headers: cors });
+      return new Response('pxax-ai ok · v0.6', { headers: cors });
     }
     if (request.method !== 'POST') return json({ reply: 'Only POST' }, { status: 405 });
 
@@ -1039,6 +1177,8 @@ export default {
         return handleDream(env, body);
       case 'tts':
         return handleTts(env, body);
+      case 'stt':
+        return handleStt(env, body);
     }
 
     // --- обычный чат ---
@@ -1075,8 +1215,12 @@ export default {
       try { await consolidateMemory(env, memory, body); } catch (e) { await bumpError(env, 'consolidate'); }
     }
 
-    // релевантный recall эпизодов к текущему сообщению
-    const recalled = recallEpisodes(memory, message);
+    // recall эпизодов: сначала по смыслу (эмбеддинги), иначе — по словам.
+    // Заодно лениво досчитываем векторы для свежих эпизодов.
+    try { await embedEpisodes(env, memory); } catch (e) { await bumpError(env, 'embed-episodes'); }
+    let recalled = null;
+    try { recalled = await recallEpisodesSemantic(env, memory, message); } catch (e) { recalled = null; }
+    if (!recalled) recalled = recallEpisodes(memory, message);
     // состояние для промпта: свежие потребности + «сколько не виделись»,
     // причём сон/туалет считаем по серверному времени, а не по устаревшему клиентскому
     const promptBody = Object.assign({}, body, {
@@ -1100,10 +1244,12 @@ export default {
       if (env.MEMORY) await kvPutJson(env, 'mem:' + userKey, memory);
     };
 
+    const hasImage = !!imagePayload(body);
+    if (hasImage) memory.lastImageAt = Date.now();
     if (wantsStream(request)) {
-      return handleStream(env, messages, persist);
+      return handleStream(env, messages, persist, hasImage);
     }
-    return handleJson(env, messages, persist);
+    return handleJson(env, messages, persist, hasImage);
   },
 
   async event(cronEvent, env) {

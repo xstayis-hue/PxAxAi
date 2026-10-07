@@ -209,6 +209,7 @@ body::before{
 .chat{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 0 12px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:88%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.45;word-break:break-word}
 .msg.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:6px;backdrop-filter:blur(12px)}
+.msg-photo{display:block;width:100%;max-width:220px;border-radius:10px;margin-bottom:6px}
 .msg.user{align-self:flex-end;background:linear-gradient(135deg,rgba(155,123,255,.35),rgba(92,225,230,.12));border:1px solid rgba(155,123,255,.28);border-bottom-right-radius:6px;color:#f0ecff}
 .msg .meta{font-size:10px;color:var(--mute);margin-bottom:4px}
 .typing{display:flex;gap:4px;padding:4px 0}
@@ -222,6 +223,24 @@ body::before{
   border:1px solid var(--line);background:rgba(24,20,44,.7);color:var(--text);white-space:nowrap;backdrop-filter:blur(8px);
 }
 .composer{flex-shrink:0;display:flex;gap:8px;align-items:flex-end;padding:8px 0 calc(10px + env(safe-area-inset-bottom))}
+/* Кнопки микрофона и фото: та же высота, что у отправки, чтобы ряд был ровным. */
+.media-btn{
+  width:44px;height:44px;border-radius:14px;flex-shrink:0;cursor:pointer;
+  background:rgba(20,18,36,.92);border:1px solid var(--line);color:var(--text);
+  display:flex;align-items:center;justify-content:center;transition:transform .12s ease,color .2s,border-color .2s;
+}
+.media-btn:active{transform:scale(.94)}
+.media-btn .ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.media-btn.rec{color:#ff8fa6;border-color:rgba(255,116,140,.6);animation:recPulse 1.2s ease-in-out infinite}
+@keyframes recPulse{50%{box-shadow:0 0 16px rgba(255,116,140,.45)}}
+.media-btn.busy{opacity:.55;cursor:wait}
+.attach-chip{
+  display:none;align-items:center;gap:8px;margin:0 0 6px;padding:6px 10px;border-radius:11px;
+  background:rgba(20,18,36,.92);border:1px solid var(--line);font-size:11px;color:#b8b2cf;
+}
+.attach-chip.on{display:flex}
+.attach-chip img{width:38px;height:38px;border-radius:8px;object-fit:cover}
+.attach-chip button{margin-left:auto;background:none;border:none;color:#ff8fa6;font-size:14px;cursor:pointer;padding:0 2px}
 .composer textarea{
   flex:1;min-height:44px;max-height:110px;resize:none;padding:12px 14px;border-radius:14px;
   font-family:inherit;font-size:15px;background:rgba(20,18,36,.92);border:1px solid var(--line);
@@ -459,7 +478,18 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
       <button type="button" class="chip-s" data-q="Помоги сформулировать идею">Идея</button>
       <button type="button" class="chip-s" data-q="Что такое нейронная сеть простыми словами?">Нейросети</button>
     </div>
+    <div class="attach-chip" id="attach-chip">
+      <img id="attach-preview" alt="Прикреплённое фото">
+      <span id="attach-label">Фото прикреплено</span>
+      <button type="button" id="attach-remove" aria-label="Убрать фото">×</button>
+    </div>
     <div class="composer">
+      <button type="button" class="media-btn" id="btn-photo" aria-label="Прикрепить фото">
+        <svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>
+      </button>
+      <button type="button" class="media-btn" id="btn-mic" aria-label="Говорить голосом">
+        <svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg>
+      </button>
       <textarea id="input" rows="1" placeholder="Сообщение…" maxlength="2000"></textarea>
       <button type="button" class="send" id="send">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -1955,12 +1985,14 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     if (history.length > CFG.HISTORY_MAX) history = history.slice(-CFG.HISTORY_MAX);
     try { storage.setItem(CFG.HISTORY_KEY, JSON.stringify(history)); } catch (e) {}
   }
-  function addMsg(role, text, save) {
+  function addMsg(role, text, save, imageDataUrl) {
     if (save === undefined) save = true;
     var div = document.createElement('div');
     div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
     if (role === 'bot') {
       div.innerHTML = '<div class="meta">' + CHARACTER.name + '</div>' + escapeHtml(text).replace(/\n/g, '<br>');
+    } else if (imageDataUrl) {
+      div.innerHTML = '<img class="msg-photo" alt="Фото" src="' + imageDataUrl + '">' + escapeHtml(text).replace(/\n/g, '<br>');
     } else {
       div.textContent = text;
     }
@@ -2028,7 +2060,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     return 'ночь';
   }
 
-  function buildPayload(messageText) {
+  function buildPayload(messageText, imageBase64) {
     var state = {
       needs: {
         hunger: Math.round(needs.hunger),
@@ -2045,7 +2077,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
       companionName: charName(),
       language: (tgUser && tgUser.language_code) || (navigator.language || 'ru').slice(0, 2)
     };
-    return {
+    var payload = {
       message: messageText,
       history: history.slice(-CFG.CONTEXT_LEN).map(function (m) { return { role: m.role, text: m.text }; }),
       state: state,
@@ -2057,6 +2089,9 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         coin: CFG.COIN_LINK
       }
     };
+    // картинка уходит в модель зрения; в историю её не кладём (она весит мегабайты)
+    if (imageBase64) payload.imageBase64 = imageBase64;
+    return payload;
   }
 
   function describeStatus() {
@@ -2185,8 +2220,138 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
 
   var activeStream = null;
 
+  /* ===== Голос и зрение =====
+     Аудио: пишем короткий кусок через MediaRecorder и отдаём на распознавание
+     в воркер (Workers AI, Whisper) — системный распознаватель в WebView часто
+     отсутствует, а серверный работает везде. Результат НЕ отправляется сам:
+     он подставляется в поле, чтобы человек мог поправить.
+     Фото: сжимаем на клиенте через canvas — отправлять 4 МБ из телефона
+     по мобильной сети нельзя, поэтому перед отправкой кадр ужимается. */
+  var pendingImage = null;
+  var mediaRecorder = null, mediaChunks = [], mediaStopTimer = null;
+
+  function setAttach(file, dataUrl) {
+    pendingImage = { dataUrl: dataUrl, name: file && file.name ? file.name : 'фото' };
+    var chip = $('attach-chip');
+    var prev = $('attach-preview');
+    if (prev) prev.src = dataUrl;
+    if (chip) chip.classList.add('on');
+  }
+  function clearAttach() {
+    pendingImage = null;
+    var chip = $('attach-chip');
+    if (chip) chip.classList.remove('on');
+    var prev = $('attach-preview');
+    if (prev) prev.removeAttribute('src');
+  }
+  function compressImage(file, maxSide, cb) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+          var w = Math.max(1, Math.round(img.width * scale));
+          var h = Math.max(1, Math.round(img.height * scale));
+          var c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          cb(c.toDataURL('image/jpeg', 0.72));
+        } catch (e) { cb(null); }
+      };
+      img.onerror = function () { cb(null); };
+      img.src = reader.result;
+    };
+    reader.onerror = function () { cb(null); };
+    reader.readAsDataURL(file);
+  }
+  function pickPhoto() {
+    if (busy) return;
+    var picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = 'image/*';
+    picker.onchange = function () {
+      var file = picker.files && picker.files[0];
+      if (!file) return;
+      if (!/^image\//.test(file.type)) { toast('Это не картинка'); return; }
+      compressImage(file, 896, function (dataUrl) {
+        if (!dataUrl) { toast('Не удалось прочитать фото'); return; }
+        setAttach(file, dataUrl);
+        haptic('select');
+      });
+    };
+    picker.click();
+  }
+  function base64FromDataUrl(dataUrl) {
+    return String(dataUrl || '').replace(/^data:[^,]+,/, '');
+  }
+  function toggleMic() {
+    if (busy) return;
+    var btn = $('btn-mic');
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      try { mediaRecorder.stop(); } catch (e) {}
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+      toast('Запись голоса недоступна в этом окружении');
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      mediaChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = function (e) { if (e.data && e.data.size) mediaChunks.push(e.data); };
+      mediaRecorder.onstop = function () {
+        if (mediaStopTimer) { clearTimeout(mediaStopTimer); mediaStopTimer = null; }
+        try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+        btn.classList.remove('rec');
+        var blob = new Blob(mediaChunks, { type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm' });
+        mediaRecorder = null;
+        if (!blob.size) { toast('Не расслышала — попробуй ещё'); return; }
+        btn.classList.add('busy');
+        var fr = new FileReader();
+        fr.onload = function () {
+          var payload = { action: 'stt', audioBase64: base64FromDataUrl(fr.result) };
+          // Общий сетевой слой: он отдаёт исходный JSON в raw, а локальный xhrPost
+          // считает ответ пустым, если в нём нет поля reply (у STT его нет).
+          var send = (window.pxaxApi && window.pxaxApi.postJson)
+            ? window.pxaxApi.postJson
+            : function (url, body, ms, cb) { xhrPost(url, body, ms, function (r) { cb({ ok: r.ok, raw: null }); }); };
+          send(CFG.AI_API_URL, payload, 30000, function (res) {
+            btn.classList.remove('busy');
+            var raw = (res && res.raw) || {};
+            if (raw.ok && raw.text) {
+              input.value = (input.value ? input.value + ' ' : '') + raw.text;
+              autoSize();
+              haptic('success');
+              try { input.focus(); } catch (e) {}
+            } else {
+              haptic('error');
+              toast(raw.error || 'Не удалось распознать речь');
+            }
+          });
+        };
+        fr.onerror = function () { btn.classList.remove('busy'); toast('Не удалось прочитать запись'); };
+        fr.readAsDataURL(blob);
+      };
+      mediaRecorder.start();
+      btn.classList.add('rec');
+      haptic('select');
+      toast('Говори — нажми ещё раз, чтобы закончить');
+      // страховка: не даём записи тянуться дольше 30 секунд
+      mediaStopTimer = setTimeout(function () {
+        if (mediaRecorder && mediaRecorder.state === 'recording') toggleMic();
+      }, 30000);
+    }).catch(function () {
+      toast('Нет доступа к микрофону');
+    });
+  }
+  if ($('btn-mic')) $('btn-mic').onclick = toggleMic;
+  if ($('btn-photo')) $('btn-photo').onclick = pickPhoto;
+  if ($('attach-remove')) $('attach-remove').onclick = function () { clearAttach(); haptic('select'); };
+
   function send(text) {
     text = (text || input.value || '').trim();
+    if (pendingImage && !text) text = 'Посмотри, что я прислал.';
     if (!text || busy || window.pxaxNeeds.isSleeping()) {
       if (window.pxaxNeeds.isSleeping()) toast(charName() + ' спит. Чат откроется после пробуждения.');
       return;
@@ -2195,7 +2360,9 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     input.value = '';
     autoSize();
     haptic('select');
-    addMsg('user', text, true);
+    var imageForMessage = pendingImage ? pendingImage.dataUrl : null;
+    addMsg('user', text, true, imageForMessage);
+    clearAttach();
     counter('messages');
     touchCare();
     addXp(4);
@@ -2221,7 +2388,8 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     setThinking(true);
     showTyping();
 
-    var payload = buildPayload(text);
+    var payload = buildPayload(text, imageForMessage ? base64FromDataUrl(imageForMessage) : null);
+    if (imageForMessage) logDayEvent('photo', imageForMessage.slice(0, 24));
     var fullText = '';
     var streamDiv = null;
     var streamBody = null;
@@ -2469,6 +2637,8 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
 <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 19V5L7.5 9.5H4Z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></symbol>
 <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5.4a6 6 0 0 1 12 0V16l1.8 2.6H4.2Z"/><path d="M10 21a2.2 2.2 0 0 0 4 0"/></symbol>
 <symbol id="i-bubble" viewBox="0 0 24 24"><path d="M5 9.5C5 6.5 8.1 4 12 4s7 2.5 7 5.5-3.1 5.5-7 5.5c-.8 0-1.6-.1-2.3-.3L6.5 17l.7-3A5.4 5.4 0 0 1 5 9.5Z"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M4.2 8.4h3l1.4-2.2h6.8l1.4 2.2h3a1.6 1.6 0 0 1 1.6 1.6v7.4a1.6 1.6 0 0 1-1.6 1.6H4.2a1.6 1.6 0 0 1-1.6-1.6V10a1.6 1.6 0 0 1 1.6-1.6Z"/><circle cx="12" cy="13.6" r="3.4"/></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24"><rect x="9.2" y="3.2" width="5.6" height="10.4" rx="2.8"/><path d="M5.6 11.4a6.4 6.4 0 0 0 12.8 0"/><path d="M12 17.8V21M8.8 21h6.4"/></symbol>
 <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4.2L19 9.2a2.2 2.2 0 0 0 0-3.1l-1.1-1.1a2.2 2.2 0 0 0-3.1 0L4 15.8Z"/><path d="m14 6.2 3.8 3.8"/></symbol>
 <symbol id="i-bento" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2.4"/><path d="M3.5 12h17M12 5.5V12"/><path d="M7.5 8.8h1M15 8.8h1M7.5 15h2M14.5 15h2"/></symbol>
 </defs></svg>

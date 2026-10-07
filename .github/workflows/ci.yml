@@ -19,6 +19,8 @@ jobs:
           node-version: '20'
       - name: Run worker test suite
         run: node worker/test/worker.test.mjs
+      - name: Run voice, vision and memory tests
+        run: node worker/test/voice-vision.test.mjs
 
   deploy-worker:
     name: Deploy Cloudflare Worker
