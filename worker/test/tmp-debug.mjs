@@ -94,8 +94,7 @@ check('H1: ответ получен', withImage.json.reply === 'вижу кот
 const imageModels = calls.map((c) => c.model);
 check('H2: дёрнута именно модель зрения', imageModels.some((m) => /vision/i.test(m)), imageModels.join(','));
 
-// runVision может сначала дёрнуть 'agree' (согласие с лицензией) без messages — берём вызов с messages
-const visionCall = [...calls].reverse().find((c) => /vision/i.test(c.model) && c.opts && c.opts.messages);
+globalThis.__calls=calls;const visionCall = calls.find((c) => /vision/i.test(c.model));
 const parts = visionCall && visionCall.opts && visionCall.opts.messages;
 const userMsg = Array.isArray(parts) ? parts[parts.length - 1] : null;
 check('H3: сообщение собрано как части (текст + картинка)',

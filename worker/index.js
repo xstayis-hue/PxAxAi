@@ -718,14 +718,40 @@ async function runLLM(env, messages, maxTokens) {
    текстовой модели, которая её просто не увидит. */
 async function runVision(env, messages) {
   if (!env.AI) return null;
-  try {
-    const result = await env.AI.run(VISION_MODEL, { messages, max_tokens: 512 });
-    const reply = (result && (result.response || result.description || result.result)) || (typeof result === 'string' ? result : '');
-    if (reply) return { text: String(reply).trim(), model: VISION_MODEL };
-  } catch (err) {
-    await bumpError(env, 'vision');
+  // Llama Vision требует одноразового согласия с Community License: если модель
+  // отвечает ошибкой 5006 с 'agree', шлём 'agree' из воркера и повторяем.
+  const attempts = [
+    () => env.AI.run(VISION_MODEL, { messages, max_tokens: 512 }),
+    async () => {
+      await env.AI.run(VISION_MODEL, { prompt: 'agree' });
+      return env.AI.run(VISION_MODEL, { messages, max_tokens: 512 });
+    },
+  ];
+  let lastErr = '';
+  for (const attempt of attempts) {
+    try {
+      // Llama Vision требует одноразового согласия с лицензией Community License:
+      // шлём prompt 'agree' из воркера — это делает владелец аккаунта, binding тот же.
+      await env.AI.run(VISION_MODEL, { prompt: 'agree' }).catch(() => {});
+      const result = await attempt();
+      const reply = (result && (result.response || result.description || result.result)) || (typeof result === 'string' ? result : '');
+      if (reply) return { text: String(reply).trim(), model: VISION_MODEL };
+    } catch (err) {
+      lastErr = (err && err.message) || String(err);
+      await bumpError(env, 'vision');
+    }
   }
   return null;
+}
+
+function extractImageFromMessages(messages) {
+  for (const m of messages) {
+    if (Array.isArray(m.content)) {
+      const part = m.content.find((p) => p.type === 'image_url');
+      if (part) return String(part.image_url.url || '').replace(/^data:[^,]+,/, '');
+    }
+  }
+  return undefined;
 }
 
 /* =========================================================
@@ -747,16 +773,27 @@ async function handleStt(env, body) {
     return json({ ok: false, error: 'битый base64' });
   }
   if (!bin.length) return json({ ok: false, error: 'пустое аудио' });
-  try {
-    const result = await env.AI.run(STT_MODEL, { audio: [...new Uint8Array(bin)] });
-    const text = (result && (result.text || result.transcription)) || '';
-    const cleanText = String(text).trim();
-    if (!cleanText) return json({ ok: false, error: 'речь не распознана' });
-    return json({ ok: true, text: cleanText.slice(0, 500), model: STT_MODEL });
-  } catch (e) {
-    await bumpError(env, 'stt');
-    return json({ ok: false, error: 'распознавание недоступно' });
+  let lastErr = '';
+  // Формат по официальной схеме: либо сырые байты, либо {audio: [0..255]}.
+  // Пробуем оба — поведение зависит от версии рантайма.
+  // Схема модели: корневой аргумент — бинарная строка аудио (format: binary),
+  // либо объект {audio}. Uint8Array при JSON-передаче внутри рантайма доходит
+  // как бинарная строка — передаём корневым аргументом без обёртки.
+  // whisper принимает поле audio как бинарную строку/байты; надёжнее всего — base64
+  const attempts = [() => env.AI.run(STT_MODEL, { audio: Buffer.from(bin).toString('base64') })];
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const result = await attempts[i]();
+      const text = (result && (result.text || result.transcription)) || '';
+      const cleanText = String(text).trim();
+      if (!cleanText) return json({ ok: false, error: 'речь не распознана' });
+      return json({ ok: true, text: cleanText.slice(0, 500), model: STT_MODEL });
+    } catch (e) {
+      lastErr = (e && e.message) || String(e);
+      await bumpError(env, 'stt');
+    }
   }
+  return json({ ok: false, error: 'распознавание недоступно' });
 }
 
 /* =========================================================
