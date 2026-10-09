@@ -18,7 +18,11 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
+      // cache: 'reload' — иначе GitHub Pages (max-age=600) отдаёт из HTTP-кэша старую
+      // версию авы/иконок, и новый кэш наполняется устаревшими файлами
+      .then((cache) => Promise.all(
+        STATIC_ASSETS.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => {}))
+      ))
       .catch(() => {})
       .then(() => self.skipWaiting())
   );
@@ -49,9 +53,12 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-  // остальная статика — сначала сеть, fallback в кэш
+  // остальная статика — сначала сеть, fallback в кэш.
+  // Для кода и разметки просим ревалидацию: GitHub Pages отдаёт статику с max-age=600,
+  // и без этого после обновления приложения пользователь до 10 минут видел бы старую версию.
+  const revalidate = /\.(?:html|js|mjs|css|json|webmanifest)$/i.test(url.pathname) || url.pathname.endsWith('/');
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, revalidate ? { cache: 'no-cache' } : undefined)
       .then((res) => {
         const clone = res.clone();
         caches.open(CACHE).then((cache) => cache.put(event.request, clone));
