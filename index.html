@@ -433,6 +433,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         <div class="home-badge-row">
           <div class="home-status wait" id="home-status" title="Связь с сервером"><span class="d"></span><span id="mode-label">подключаюсь…</span></div>
           <button type="button" class="voice-toggle off" id="voice-toggle" aria-label="Голос компаньона: вкл/выкл" aria-pressed="true"><svg class="ic ic-voice" aria-hidden="true"><use href="#i-sound"/></svg></button>
+          <button type="button" class="voice-toggle off" id="mic-toggle" aria-label="Микрофон: вкл/выкл" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
         </div>
       </div>
       <div class="home-strip">
@@ -965,6 +966,8 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   function closeChat() {
     haptic('select');
     unlock();
+    // запись не должна продолжаться «в фоне» после ухода из чата
+    if (mediaRecorder && mediaRecorder.state === 'recording') { try { mediaRecorder.stop(); } catch (e) {} }
     chatView.classList.remove('open');
     home.classList.remove('hidden');
     document.body.classList.remove('chat-open');
@@ -1041,6 +1044,25 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   var WARDROBE_KEY = 'pxax_ai_wardrobe_v1';
   var GAMES_KEY = 'pxax_ai_games_v1';
   var VOICE_KEY = 'pxax_ai_voice_v1';
+  /* Микрофон по умолчанию ВЫКЛЮЧЕН: без явного согласия кнопка не запускает запись и
+     браузер не спрашивает разрешение. Прячем кнопку, пока человек не разрешил вручную,
+     чтобы запрос «Разрешить … использование микрофона?» не всплывал на постороннем домене. */
+  var MIC_KEY = 'pxax_ai_mic_v1';
+  var micConsent = false;
+  try { micConsent = storage.getItem(MIC_KEY) === '1'; } catch (e) {}
+  function refreshMicToggle() {
+    var btn = $('mic-toggle');
+    var mic = $('btn-mic');
+    if (btn) {
+      btn.classList.toggle('off', !micConsent);
+      btn.setAttribute('aria-pressed', micConsent ? 'true' : 'false');
+      btn.title = micConsent ? 'Микрофон: вкл' : 'Микрофон: выкл — нажми, чтобы включить';
+    }
+    if (mic) {
+      mic.hidden = !micConsent;
+      mic.setAttribute('aria-hidden', micConsent ? 'false' : 'true');
+    }
+  }
   var PRED_CACHE_KEY = 'pxax_ai_analytics_cache_v2';
   // слайды для экрана монитора: прогнозы дня вперемешку с промо экосистемы
   var ECOSYSTEM_PROMO = [
@@ -2288,6 +2310,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   function toggleMic() {
     if (busy) return;
     var btn = $('btn-mic');
+    if (!micConsent) { toast('Микрофон выключен. Включи его на главном экране.'); return; }
     if (mediaRecorder && mediaRecorder.state === 'recording') {
       try { mediaRecorder.stop(); } catch (e) {}
       return;
@@ -2513,6 +2536,23 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     }
   });
   refreshVoiceToggle();
+  var micToggleBtn = $('mic-toggle');
+  if (micToggleBtn) micToggleBtn.addEventListener('click', function () {
+    if (micConsent) {
+      // выключаем: обрываем активную запись, дальше браузер разрешение спрашивать не будет
+      micConsent = false;
+      try { storage.setItem(MIC_KEY, '0'); } catch (e) {}
+      if (mediaRecorder && mediaRecorder.state === 'recording') { try { mediaRecorder.stop(); } catch (e) {} }
+      toast('Микрофон выключен');
+    } else {
+      micConsent = true;
+      try { storage.setItem(MIC_KEY, '1'); } catch (e) {}
+      toast('Микрофон включён — разреши доступ, когда спросит');
+    }
+    refreshMicToggle();
+    haptic('select');
+  });
+  refreshMicToggle();
   renderWardrobe();
   renderAch();
   renderXp();
