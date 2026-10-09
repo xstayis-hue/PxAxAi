@@ -340,15 +340,7 @@ body.reduced-motion .btn-apps .glitch-title{animation:none}
 }
 .quest-chip .q-dot{width:6px;height:6px;border-radius:50%;background:#ffd27a;box-shadow:0 0 8px #ffd27a}
 
-/* voice toggle */
-.voice-toggle{
-  width:30px;height:30px;border-radius:50%;border:1px solid rgba(92,225,230,.3);
-  background:rgba(10,12,24,.55);color:#baf4f8;font-size:13px;cursor:pointer;
-  backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:0;
-  flex:0 0 auto;
-}
-.voice-toggle.off{opacity:.5;color:#8a84a0;border-color:rgba(140,120,255,.2)}
-.voice-toggle .ic{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block}
+/* voice toggle убран вместе с озвучкой — стили оставлены, чтобы кэшированная разметка не «поехала */
 
 /* AI-аналитика на подходе к ноутбуку: панель выезжает слева и растянута по
    высоте комнаты. Стол с монитором стоит справа от неё, поэтому экран со
@@ -432,8 +424,6 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         </div>
         <div class="home-badge-row">
           <div class="home-status wait" id="home-status" title="Связь с сервером"><span class="d"></span><span id="mode-label">подключаюсь…</span></div>
-          <button type="button" class="voice-toggle off" id="voice-toggle" aria-label="Голос компаньона: вкл/выкл" aria-pressed="true"><svg class="ic ic-voice" aria-hidden="true"><use href="#i-sound"/></svg></button>
-          <button type="button" class="voice-toggle off" id="mic-toggle" aria-label="Микрофон: вкл/выкл" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
         </div>
       </div>
       <div class="home-strip">
@@ -487,9 +477,6 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     <div class="composer">
       <button type="button" class="media-btn" id="btn-photo" aria-label="Прикрепить фото">
         <svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>
-      </button>
-      <button type="button" class="media-btn" id="btn-mic" aria-label="Говорить голосом">
-        <svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg>
       </button>
       <textarea id="input" rows="1" placeholder="Сообщение…" maxlength="2000"></textarea>
       <button type="button" class="send" id="send">
@@ -966,8 +953,6 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   function closeChat() {
     haptic('select');
     unlock();
-    // запись не должна продолжаться «в фоне» после ухода из чата
-    if (mediaRecorder && mediaRecorder.state === 'recording') { try { mediaRecorder.stop(); } catch (e) {} }
     chatView.classList.remove('open');
     home.classList.remove('hidden');
     document.body.classList.remove('chat-open');
@@ -1043,26 +1028,10 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   var PROGRESS_KEY = 'pxax_ai_progress_v1';
   var WARDROBE_KEY = 'pxax_ai_wardrobe_v1';
   var GAMES_KEY = 'pxax_ai_games_v1';
-  var VOICE_KEY = 'pxax_ai_voice_v1';
-  /* Микрофон по умолчанию ВЫКЛЮЧЕН: без явного согласия кнопка не запускает запись и
-     браузер не спрашивает разрешение. Прячем кнопку, пока человек не разрешил вручную,
-     чтобы запрос «Разрешить … использование микрофона?» не всплывал на постороннем домене. */
-  var MIC_KEY = 'pxax_ai_mic_v1';
-  var micConsent = false;
-  try { micConsent = storage.getItem(MIC_KEY) === '1'; } catch (e) {}
-  function refreshMicToggle() {
-    var btn = $('mic-toggle');
-    var mic = $('btn-mic');
-    if (btn) {
-      btn.classList.toggle('off', !micConsent);
-      btn.setAttribute('aria-pressed', micConsent ? 'true' : 'false');
-      btn.title = micConsent ? 'Микрофон: вкл' : 'Микрофон: выкл — нажми, чтобы включить';
-    }
-    if (mic) {
-      mic.hidden = !micConsent;
-      mic.setAttribute('aria-hidden', micConsent ? 'false' : 'true');
-    }
-  }
+  /* Микрофон и озвучка отключены целиком, пока приложение работает на чужом домене
+     (xstayis-hue.github.io): браузер спрашивает разрешение на микрофон у ДОМЕНА, и в
+     этом диалоге светится github-аккаунт. Микрофон и голос убраны из интерфейса и
+     вызовов — остаются только текст и изображения. */
   var PRED_CACHE_KEY = 'pxax_ai_analytics_cache_v2';
   // слайды для экрана монитора: прогнозы дня вперемешку с промо экосистемы
   var ECOSYSTEM_PROMO = [
@@ -1198,19 +1167,9 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
      Подбор голоса и озвучка живут в js/life.js: там выбирается качественный
      русский женский голос, а если такого нет — озвучка выключается целиком
      (роботизированный акцент хуже тишины). */
-  var voiceEnabled = true;
-  try { voiceEnabled = storage.getItem(VOICE_KEY) !== '0'; } catch (e) {}
-  function refreshVoiceToggle() {
-    if (window.pxaxLife && window.pxaxLife.refreshVoiceButton) { window.pxaxLife.refreshVoiceButton(); return; }
-    var btn = $('voice-toggle');
-    if (!btn) return;
-    btn.classList.toggle('off', !voiceEnabled);
-    btn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#' + (voiceEnabled ? 'i-sound' : 'i-mute') + '"/></svg>';
-  }
-  function speakTTS(text) {
-    if (!voiceEnabled) return;
-    if (window.pxaxLife && window.pxaxLife.speak) { window.pxaxLife.speak(text); return; }
-  }
+  /* Заглушки: озвучка отключена целиком (см. блок «Микрофон и озвучка»). Оставлены, чтобы
+     вызовы из кэшированного index.html или старых сборок не падали. */
+  function speakTTS(text) { /* озвучка отключена: браузер не запрашивает ни микрофон, ни голос */ }
   /* burstConfetti убрано */
 
   /* ---- pxax-predict: виджет прогнозов на ноутбуке ---- */
@@ -2242,15 +2201,11 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
 
   var activeStream = null;
 
-  /* ===== Голос и зрение =====
-     Аудио: пишем короткий кусок через MediaRecorder и отдаём на распознавание
-     в воркер (Workers AI, Whisper) — системный распознаватель в WebView часто
-     отсутствует, а серверный работает везде. Результат НЕ отправляется сам:
-     он подставляется в поле, чтобы человек мог поправить.
-     Фото: сжимаем на клиенте через canvas — отправлять 4 МБ из телефона
-     по мобильной сети нельзя, поэтому перед отправкой кадр ужимается. */
+  /* ===== Изображения =====
+     Голос и микрофон отключены (см. блок «Микрофон»), поэтому здесь остались только фото:
+     сжимаем на клиенте через canvas — отправлять 4 МБ из телефона по мобильной сети нельзя,
+     поэтому перед отправкой кадр ужимается. */
   var pendingImage = null;
-  var mediaRecorder = null, mediaChunks = [], mediaStopTimer = null;
 
   function setAttach(file, dataUrl) {
     pendingImage = { dataUrl: dataUrl, name: file && file.name ? file.name : 'фото' };
@@ -2307,68 +2262,9 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   function base64FromDataUrl(dataUrl) {
     return String(dataUrl || '').replace(/^data:[^,]+,/, '');
   }
-  function toggleMic() {
-    if (busy) return;
-    var btn = $('btn-mic');
-    if (!micConsent) { toast('Микрофон выключен. Включи его на главном экране.'); return; }
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-      try { mediaRecorder.stop(); } catch (e) {}
-      return;
-    }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
-      toast('Запись голоса недоступна в этом окружении');
-      return;
-    }
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      mediaChunks = [];
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = function (e) { if (e.data && e.data.size) mediaChunks.push(e.data); };
-      mediaRecorder.onstop = function () {
-        if (mediaStopTimer) { clearTimeout(mediaStopTimer); mediaStopTimer = null; }
-        try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
-        btn.classList.remove('rec');
-        var blob = new Blob(mediaChunks, { type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm' });
-        mediaRecorder = null;
-        if (!blob.size) { toast('Не расслышала — попробуй ещё'); return; }
-        btn.classList.add('busy');
-        var fr = new FileReader();
-        fr.onload = function () {
-          var payload = { action: 'stt', audioBase64: base64FromDataUrl(fr.result) };
-          // Общий сетевой слой: он отдаёт исходный JSON в raw, а локальный xhrPost
-          // считает ответ пустым, если в нём нет поля reply (у STT его нет).
-          var send = (window.pxaxApi && window.pxaxApi.postJson)
-            ? window.pxaxApi.postJson
-            : function (url, body, ms, cb) { xhrPost(url, body, ms, function (r) { cb({ ok: r.ok, raw: null }); }); };
-          send(CFG.AI_API_URL, payload, 30000, function (res) {
-            btn.classList.remove('busy');
-            var raw = (res && res.raw) || {};
-            if (raw.ok && raw.text) {
-              input.value = (input.value ? input.value + ' ' : '') + raw.text;
-              autoSize();
-              haptic('success');
-              try { input.focus(); } catch (e) {}
-            } else {
-              haptic('error');
-              toast(raw.error || 'Не удалось распознать речь');
-            }
-          });
-        };
-        fr.onerror = function () { btn.classList.remove('busy'); toast('Не удалось прочитать запись'); };
-        fr.readAsDataURL(blob);
-      };
-      mediaRecorder.start();
-      btn.classList.add('rec');
-      haptic('select');
-      toast('Говори — нажми ещё раз, чтобы закончить');
-      // страховка: не даём записи тянуться дольше 30 секунд
-      mediaStopTimer = setTimeout(function () {
-        if (mediaRecorder && mediaRecorder.state === 'recording') toggleMic();
-      }, 30000);
-    }).catch(function () {
-      toast('Нет доступа к микрофону');
-    });
-  }
-  if ($('btn-mic')) $('btn-mic').onclick = toggleMic;
+  /* Микрофон отключён целиком: getUserMedia не вызывается ни при каких условиях, поэтому
+     браузер не может показать запрос доступа и подсветить github-домен. Кнопки записи в
+     интерфейсе тоже нет, так что и обработчик не нужен. */
   if ($('btn-photo')) $('btn-photo').onclick = pickPhoto;
   if ($('attach-remove')) $('attach-remove').onclick = function () { clearAttach(); haptic('select'); };
 
@@ -2525,34 +2421,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     if (b) send(b.getAttribute('data-q'));
   };
 
-  /* --- голос, настройки, запуск систем --- */
-  $('voice-toggle').addEventListener('click', function () {
-    voiceEnabled = !voiceEnabled;
-    try { storage.setItem(VOICE_KEY, voiceEnabled ? '1' : '0'); } catch (e) {}
-    refreshVoiceToggle();
-    if (!voiceEnabled) {
-      if (window.pxaxLife && window.pxaxLife.stopSpeak) window.pxaxLife.stopSpeak();
-      else if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (e) {} }
-    }
-  });
-  refreshVoiceToggle();
-  var micToggleBtn = $('mic-toggle');
-  if (micToggleBtn) micToggleBtn.addEventListener('click', function () {
-    if (micConsent) {
-      // выключаем: обрываем активную запись, дальше браузер разрешение спрашивать не будет
-      micConsent = false;
-      try { storage.setItem(MIC_KEY, '0'); } catch (e) {}
-      if (mediaRecorder && mediaRecorder.state === 'recording') { try { mediaRecorder.stop(); } catch (e) {} }
-      toast('Микрофон выключен');
-    } else {
-      micConsent = true;
-      try { storage.setItem(MIC_KEY, '1'); } catch (e) {}
-      toast('Микрофон включён — разреши доступ, когда спросит');
-    }
-    refreshMicToggle();
-    haptic('select');
-  });
-  refreshMicToggle();
+  /* --- голос, настройки, запуск систем (микрофон и озвучка отключены) --- */
   renderWardrobe();
   renderAch();
   renderXp();

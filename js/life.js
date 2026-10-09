@@ -33,121 +33,20 @@
   function setKey(k, v) { try { storage().setItem(k, v); } catch (e) {} }
 
   /* =========================================================
-     ГОЛОС
-     Системные голоса WebView (Microsoft Irina и подобные) звучат
-     роботизированно, а в Telegram WebView их часто нет вовсе. Поэтому
-     основной путь — серверная озвучка (Google TTS, ru) через воркер:
-     звучит живо. Локальный speechSynthesis — только аварийный резерв,
-     и лишь если он даёт действительно хороший русский женский голос.
+     ГОЛОС — ВЫКЛЮЧЕН
+     Озвучка и распознавание речи убраны из приложения целиком: браузер
+     спрашивает доступ к микрофону у ДОМЕНА (xstayis-hue.github.io), и в этом
+     диалоге светится github-аккаунт. Пока приложение живёт на github.io,
+     остаются только текст и изображения. Серверные эндпоинты TTS/STT не
+     вызываются вообще.
      ========================================================= */
-  var SERVER_TTS = true;          // серверная озвучка как основная
-  var voice = { enabled: true, mode: 'server', localVoice: null, reason: '' };
-  var audioEl = null;
-  var ttsCache = {};              // текст → object URL, чтобы не дёргать сервер повторно
+  function refreshVoiceButton() { /* переключателя голоса больше нет */ }
 
-  var GOOD_RU = [
-    { re: /google\s+русский/i, score: 100 },
-    { re: /svetlana|светлана/i, score: 95 },
-    { re: /dariya|дария|daria/i, score: 95 },
-    { re: /milena|милена/i, score: 90 },
-    { re: /katya|катя/i, score: 88 },
-    { re: /yandex|алиса|alice/i, score: 80 }
-  ];
-  var BAD_RU = /irina|ирина|pavel|павел|microsoft|male|мужск/i;
+  function stopSpeak() { /* нечего останавливать: озвучка выключена */ }
 
-  function pickLocalVoice() {
-    voice.localVoice = null;
-    if (!('speechSynthesis' in window)) return;
-    var voices = [];
-    try { voices = speechSynthesis.getVoices() || []; } catch (e) { return; }
-    var ru = voices.filter(function (v) { return /^ru/i.test(v.lang || ''); });
-    var ranked = ru.map(function (v) {
-      var s = 0;
-      GOOD_RU.forEach(function (g) { if (g.re.test(v.name || '')) s = Math.max(s, g.score); });
-      if (BAD_RU.test(v.name || '')) s -= 200; // «Microsoft Irina» — как раз то, что не нравится
-      return { v: v, s: s };
-    }).sort(function (a, b) { return b.s - a.s; });
-    if (ranked[0] && ranked[0].s >= 80) voice.localVoice = ranked[0].v;
-  }
+  function speakLocal(text) { return false; }
 
-  function ensureAudio() {
-    if (audioEl) return audioEl;
-    audioEl = new Audio();
-    audioEl.preload = 'auto';
-    audioEl.setAttribute('playsinline', '');
-    return audioEl;
-  }
-
-  function refreshVoiceButton() {
-    var btn = document.getElementById('voice-toggle');
-    if (!btn) return;
-    var wantOn = getKey(KEYS.voice) !== '0';
-    var on = wantOn && voice.enabled;
-    btn.classList.toggle('off', !on);
-    btn.innerHTML = '<svg class="ic ic-voice" aria-hidden="true"><use href="#' + (on ? 'i-sound' : 'i-mute') + '"/></svg>';
-    btn.setAttribute('aria-pressed', String(on));
-    btn.title = voice.enabled
-      ? 'Голос компаньона: живой русский (сервер) — вкл/выкл'
-      : 'Озвучка недоступна';
-  }
-
-  function stopSpeak() {
-    try { if (audioEl) { audioEl.pause(); audioEl.currentTime = 0; } } catch (e) {}
-    try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {}
-  }
-
-  function speakLocal(text) {
-    if (!voice.localVoice) return false;
-    try {
-      var u = new SpeechSynthesisUtterance(String(text).slice(0, 400));
-      u.voice = voice.localVoice;
-      u.lang = voice.localVoice.lang || 'ru-RU';
-      u.rate = 1; u.pitch = 1.05;
-      speechSynthesis.speak(u);
-      return true;
-    } catch (e) { return false; }
-  }
-
-  function speak(text) {
-    if (getKey(KEYS.voice) === '0') return false;
-    var clean = String(text || '')
-      .replace(/```[\s\S]*?```/g, ' ')
-      .replace(/\{[^{}]*"(?:action|link)"[^{}]*\}/g, ' ')
-      .replace(/[*_#`>]/g, ' ')
-      .replace(/\s+/g, ' ').trim().slice(0, 600);
-    if (!clean || clean.indexOf('⏳') !== -1) return false;
-    stopSpeak();
-
-    if (SERVER_TTS && app && app.apiUrl) {
-      // кэш: одинаковые фразы не озвучиваем дважды
-      if (ttsCache[clean]) {
-        try { var a0 = ensureAudio(); a0.src = ttsCache[clean]; a0.play().catch(function () {}); return true; } catch (e) {}
-      }
-      try {
-        var x = new XMLHttpRequest();
-        x.open('POST', app.apiUrl, true);
-        x.setRequestHeader('Content-Type', 'application/json');
-        x.responseType = 'blob';
-        x.timeout = 20000;
-        x.onload = function () {
-          if (x.status >= 200 && x.status < 300 && x.response && x.response.size > 200) {
-            var url = URL.createObjectURL(x.response);
-            ttsCache[clean] = url;
-            var keys = Object.keys(ttsCache);
-            if (keys.length > 40) { try { URL.revokeObjectURL(ttsCache[keys[0]]); } catch (e) {} delete ttsCache[keys[0]]; }
-            try { var a = ensureAudio(); a.src = url; a.play().catch(function () {}); } catch (e) {}
-          } else {
-            speakLocal(clean); // сервер не смог — пробуем хороший локальный, если он есть
-          }
-        };
-        x.onerror = function () { speakLocal(clean); };
-        x.ontimeout = function () { speakLocal(clean); };
-        x.send(JSON.stringify({ action: 'tts', text: clean }));
-        return true;
-      } catch (e) { return speakLocal(clean); }
-    }
-    return speakLocal(clean);
-  }
+  function speak(text) { return false; }
 
   /* =========================================================
      ОНБОРДИНГ
@@ -331,21 +230,7 @@
   function init(opts) {
     app = opts || {};
     injectCss();
-    pickLocalVoice();
-    refreshVoiceButton();
-    if ('speechSynthesis' in window) {
-      try {
-        speechSynthesis.onvoiceschanged = function () { pickLocalVoice(); refreshVoiceButton(); };
-      } catch (e) {}
-    }
-    // кнопка голоса: перехватываем и учитываем доступность голоса
-    var btn = document.getElementById('voice-toggle');
-    if (btn) {
-      btn.addEventListener('click', function () {
-        if (getKey(KEYS.voice) === '0') stopSpeak();
-        setTimeout(refreshVoiceButton, 0);
-      });
-    }
+    // намеренно НЕ трогаем speechSynthesis и не ищем кнопку голоса: озвучка выключена
     if (shouldOnboard()) {
       setTimeout(showOnboarding, 600);
     }
@@ -363,17 +248,12 @@
 
   window.pxaxLife = {
     init: init,
+    // speak/stopSpeak/refreshVoiceButton остаются только как заглушки: вызовы из UI убраны,
+    // но старые ссылки в кэшированном index.html не должны падать
     speak: speak,
     stopSpeak: stopSpeak,
     refreshVoiceButton: refreshVoiceButton,
-    voiceInfo: function () {
-      return {
-        enabled: voice.enabled,
-        mode: SERVER_TTS ? 'server' : 'local',
-        localVoice: voice.localVoice && voice.localVoice.name,
-        reason: voice.reason
-      };
-    },
+    voiceInfo: function () { return { enabled: false, mode: 'off', localVoice: null, reason: 'disabled' }; },
     state: function () { return state; },
     syncLife: syncLife,
     returnBonusFor: returnBonusFor
