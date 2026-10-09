@@ -1,5 +1,5 @@
 /* PXAX · Nova — сервис-воркер: кэшируем только статику, API идёт в сеть */
-const CACHE = 'pxax-ai-v3';
+const CACHE = 'pxax-ai-v4';
 const STATIC_ASSETS = [
   './',
   './index.html',
