@@ -33,11 +33,19 @@ body::before{
 #net,#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
 #net{opacity:.3}#fx{opacity:.45}
 #room3d{
-  position:fixed;z-index:1;left:50%;top:0;bottom:calc(236px + env(safe-area-inset-bottom));
+  /* 236px резервировались под прежний нижний блок с двумя большими плитками
+     VPN/VPHX. Плитки уехали в шапку, блок стал ~192px — комната забирает
+     освободившееся место вверх. */
+  position:fixed;z-index:1;left:50%;top:0;bottom:calc(196px + env(safe-area-inset-bottom));
   width:min(100vw,480px);transform:translateX(-50%);overflow:hidden;touch-action:pan-y;
   transition:opacity .3s ease;
 }
 #room3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y}
+/* На узких экранах подсказка снизу переносится на вторую строку и нижний блок
+   становится выше — комнате нужен больший запас, иначе она заходит под кнопки. */
+@media (max-width:399px){
+  #room3d{bottom:calc(212px + env(safe-area-inset-bottom))}
+}
 #room3d.chat-mode{opacity:.48;pointer-events:none}
 .room-hotspots{position:absolute;inset:0;pointer-events:none}
 .room-hotspot{
@@ -133,7 +141,7 @@ body::before{
 /* потребности: компактная полоса из 4 мини-шкал вместо крупного блока */
 .needs-grid{
   display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;max-width:340px;margin:0 auto;
-  padding:8px 11px;border:1px solid rgba(140,120,255,.16);border-radius:13px;
+  padding:7px 11px;border:1px solid rgba(140,120,255,.16);border-radius:13px;
   background:rgba(8,8,20,.72);backdrop-filter:blur(10px);text-align:center;
 }
 .needs-grid{order:0}
@@ -150,8 +158,8 @@ body::before{
 .care-open{width:100%;max-width:340px;margin:10px auto 0;padding:10px}
 .care-open:disabled,.chat-care:disabled{opacity:.6;cursor:default}
 /* Плитка AI-аналитики убрана: блок живёт на экране монитора в комнате.
-   Остались VPN и VPHX — их не трогаем. */
-.home-apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+   VPN и VPHX переехали наверх, к статусу связи: это кнопки экосистемы, а не
+   действия с персонажем, и в нижнем блоке они занимали четверть экрана. */
 .btn-main{
   width:100%;padding:14px;border:none;border-radius:14px;font-family:inherit;
   font-size:15px;font-weight:650;cursor:pointer;color:#fff;
@@ -159,34 +167,30 @@ body::before{
   transition:transform .12s ease;
 }
 .btn-main:active{transform:scale(.98);opacity:.92}
-.btn-apps{
-  min-width:0;min-height:76px;padding:8px 4px 7px;border-radius:13px;font-family:inherit;cursor:pointer;
-  background:rgba(0,0,0,.52);border:1px solid rgba(0,255,255,.22);backdrop-filter:blur(8px);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  box-shadow:0 0 18px rgba(255,0,170,.1),inset 0 0 18px rgba(0,255,255,.04);
+/* Экосистема: компактные чипы под статусом связи, а не крупные плитки */
+.home-eco{display:flex;justify-content:flex-end;gap:6px;margin-top:7px}
+.eco-btn{
+  display:inline-flex;align-items:center;gap:5px;max-width:52%;padding:5px 9px;
+  border-radius:20px;font-family:inherit;cursor:pointer;
+  background:rgba(8,9,20,.72);border:1px solid rgba(0,255,255,.2);backdrop-filter:blur(8px);
   transition:transform .12s ease;
 }
-.btn-apps:active{transform:scale(.98);opacity:.92}
-.app-icon{width:17px;height:17px;line-height:1;color:#71f2ed;filter:drop-shadow(0 0 6px currentColor)}
-.app-icon .ic{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block}
-.btn-apps.vpn{border-color:rgba(92,225,230,.28);box-shadow:0 0 18px rgba(0,220,210,.1),inset 0 0 18px rgba(0,255,255,.04)}
-.btn-apps.coin{border-color:rgba(255,196,94,.3);box-shadow:0 0 18px rgba(255,178,62,.1),inset 0 0 18px rgba(255,196,94,.04)}
-.btn-apps.coin .app-icon{color:#ffd27a}
-.btn-apps.vpn .app-icon{color:#65e8ef}
-.btn-apps .glitch-title{
-  font-size:clamp(10px,2.7vw,13px);font-weight:900;letter-spacing:.6px;text-transform:uppercase;line-height:1.15;
-  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  color:#fff;font-family:Impact,'Arial Black',system-ui,sans-serif;
-  text-shadow:0 0 6px #ff00aa,0 0 14px rgba(255,0,170,.7),0 0 22px rgba(0,255,255,.35),
-    1px 0 0 rgba(255,0,100,.5),-1px 0 0 rgba(0,255,255,.4);
-  animation:title-blink 1.6s steps(1) infinite;
+.eco-btn:active{transform:scale(.96);opacity:.9}
+.eco-btn .ic{width:12px;height:12px;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block;filter:drop-shadow(0 0 5px currentColor)}
+.eco-btn.vpn{color:#65e8ef;border-color:rgba(92,225,230,.3);box-shadow:0 0 12px rgba(0,220,210,.12)}
+.eco-btn.coin{color:#ffd27a;border-color:rgba(255,196,94,.32);box-shadow:0 0 12px rgba(255,178,62,.12)}
+.eco-text{display:flex;flex-direction:column;align-items:flex-start;min-width:0;line-height:1.1}
+.eco-title{
+  font-size:9.5px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;
+  font-family:Impact,'Arial Black',system-ui,sans-serif;
+  text-shadow:0 0 6px rgba(255,0,170,.75),0 0 12px rgba(0,255,255,.3);
 }
-@keyframes title-blink{0%,42%{opacity:1}43%{opacity:.25}44%,86%{opacity:1}87%{opacity:.4}88%,100%{opacity:1}}
-.btn-apps .glitch-sub{font-size:8px;letter-spacing:1px;color:rgba(0,255,255,.62);font-weight:600;text-transform:uppercase}
-.btn-apps.coin .glitch-sub{color:rgba(255,210,122,.72)}
-.btn-apps.coin .glitch-sub.t-up{color:rgba(123,240,178,.85)}
-.btn-apps.coin .glitch-sub.t-down{color:rgba(255,116,140,.85)}
-.btn-apps.coin .glitch-sub.t-load{animation:blink-sub 1.4s steps(2) infinite}
+.eco-btn.coin .eco-title{text-shadow:0 0 6px rgba(255,178,62,.6)}
+.eco-sub{font-size:7.5px;letter-spacing:.4px;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96px}
+.eco-btn.coin .eco-sub{color:rgba(255,210,122,.75)}
+.eco-sub.t-up{color:#7bf0b2}
+.eco-sub.t-down{color:#ff748c}
+.eco-sub.t-load{animation:blink-sub 1.4s steps(2) infinite}
 @keyframes blink-sub{50%{opacity:.35}}
 .home-hint{margin-top:6px;font-size:10.5px;color:#8a84a0;line-height:1.35;max-width:340px}
 /* ===== CHAT ===== */
@@ -266,16 +270,39 @@ body::before{
 .send:disabled{opacity:.4;cursor:not-allowed}
 .send svg{width:20px;height:20px}
 .care-modal[hidden]{display:none}
-.care-modal{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(4,4,12,.78);backdrop-filter:blur(10px);pointer-events:auto}
-.care-panel{width:min(100%,390px);max-height:min(86dvh,720px);overflow-y:auto;padding:18px;border:1px solid rgba(155,123,255,.32);border-radius:20px;background:linear-gradient(160deg,rgba(27,22,47,.98),rgba(9,12,25,.98));box-shadow:0 20px 70px rgba(0,0,0,.55)}
+.care-modal{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(4,4,12,.78);backdrop-filter:blur(10px);pointer-events:auto}
+.care-panel{
+  width:min(100%,390px);max-height:min(88dvh,760px);overflow:hidden;display:flex;flex-direction:column;
+  padding:16px 16px 0;border:1px solid rgba(155,123,255,.32);border-radius:20px;
+  background:linear-gradient(160deg,rgba(27,22,47,.98),rgba(9,12,25,.98));box-shadow:0 20px 70px rgba(0,0,0,.55);
+}
 .rename-btn{background:none;border:none;color:#9b7bff;cursor:pointer;vertical-align:middle;padding:2px;display:inline-flex}
 .rename-btn .ic{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.care-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.care-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex:0 0 auto}
 .care-head h2{flex:1;font-size:17px;color:#f0eaff}
 .care-balance{font-size:12px;color:#ffdc8c;white-space:nowrap}
 .care-close{width:32px;height:32px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.04);color:var(--text);font-size:19px;cursor:pointer}
-.care-state{margin:0 0 13px;padding:10px 11px;border-radius:12px;background:rgba(6,8,18,.7);color:#bab4cc;font-size:12px;line-height:1.45}
-.care-section-title{margin:14px 0 8px;color:#e4def8;font-size:12px;font-weight:700}
+/* Раньше весь экран ухода был одной сплошной колонкой: задания, игры, еда,
+   гардероб, цвета, дневник, достижения и промокод шли подряд — приходилось
+   долго скроллить, чтобы добраться до нужного. Теперь это 4 вкладки. */
+.care-tabs{display:flex;gap:4px;flex:0 0 auto;margin:0 -4px 12px;padding:4px;border-radius:13px;background:rgba(6,8,18,.6);border:1px solid rgba(140,120,255,.14)}
+.care-tab{
+  flex:1 1 0;min-width:0;padding:8px 4px;border:none;border-radius:10px;cursor:pointer;font-family:inherit;
+  background:transparent;color:#9a94b5;font-size:11px;font-weight:650;white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:background .15s,color .15s;
+}
+.care-tab .ic{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.care-tab.on{background:linear-gradient(135deg,rgba(155,123,255,.28),rgba(107,140,255,.18));color:#f0eaff;box-shadow:0 2px 10px rgba(155,123,255,.18)}
+.care-tab .tab-dot{width:5px;height:5px;border-radius:50%;background:#ffd27a;box-shadow:0 0 6px #ffd27a;flex:0 0 auto;display:none}
+.care-tab.alert .tab-dot{display:block}
+.care-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding-bottom:16px;scrollbar-width:thin}
+.care-body::-webkit-scrollbar{width:6px}
+.care-body::-webkit-scrollbar-thumb{background:rgba(140,120,255,.3);border-radius:6px}
+.care-pane[hidden]{display:none}
+.care-state{margin:0 0 14px;padding:10px 11px;border-radius:12px;background:rgba(6,8,18,.7);color:#bab4cc;font-size:12px;line-height:1.45;border:1px solid rgba(140,120,255,.12)}
+.care-section-title{margin:0 0 9px;color:#e4def8;font-size:12px;font-weight:700}
+.care-section-title.mt{margin-top:18px}
+.care-section-title .sec-hint{float:right;color:#8c86a6;font-weight:600;font-size:11px}
 .game-area{margin-top:9px;padding:12px;border-radius:13px;background:rgba(4,9,20,.72);text-align:center}
 .game-area[hidden]{display:none}
 .shop-grid{display:grid;grid-template-columns:1fr;gap:7px}
@@ -322,7 +349,8 @@ body::before{
 }
 body.reduced-motion #net,body.reduced-motion #fx{display:none}
 body.reduced-motion .home-status .d{animation:none}
-body.reduced-motion .btn-apps .glitch-title{animation:none}
+body.reduced-motion .eco-btn .eco-sub.t-load{animation:none}
+body.reduced-motion .home-now .hn-dot{animation:none}
 
 /* ===== STREAM STOP BUTTON ===== */
 .send.stop{
@@ -446,6 +474,16 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
           <div class="home-status wait" id="home-status" title="Связь с сервером"><span class="d"></span><span id="mode-label">подключаюсь…</span></div>
         </div>
       </div>
+      <div class="home-eco" aria-label="Другие приложения экосистемы">
+        <button type="button" class="eco-btn vpn" id="btn-vpn" aria-label="Открыть приложение VPN">
+          <svg class="ic" aria-hidden="true"><use href="#i-bolt"/></svg>
+          <span class="eco-text"><span class="eco-title">VPN</span><span class="eco-sub">Vph</span></span>
+        </button>
+        <button type="button" class="eco-btn coin" id="btn-coin" aria-label="Открыть VibeCoin">
+          <svg class="ic" aria-hidden="true"><use href="#i-coin2"/></svg>
+          <span class="eco-text"><span class="eco-title">VPHX</span><span class="eco-sub" id="coin-ticker">VibeCoin</span></span>
+        </button>
+      </div>
       <div class="home-strip">
         <span class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></span>
         <span class="home-xp"><strong id="home-level">Ур. 1</strong><span>·</span><span id="home-mood">любопытная</span></span>
@@ -454,18 +492,6 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     </div>
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
-      <div class="home-apps" aria-label="Другие приложения">
-        <button type="button" class="btn-apps vpn" id="btn-vpn" aria-label="Открыть приложение VPN">
-          <span class="app-icon" aria-hidden="true"><svg class="ic"><use href="#i-bolt"/></svg></span>
-          <span class="glitch-title">VPN</span>
-          <span class="glitch-sub">Vph</span>
-        </button>
-        <button type="button" class="btn-apps coin" id="btn-coin" aria-label="Открыть VibeCoin">
-          <span class="app-icon" aria-hidden="true"><svg class="ic"><use href="#i-coin2"/></svg></span>
-          <span class="glitch-title">VPHX</span>
-          <span class="glitch-sub" id="coin-ticker">VibeCoin</span>
-        </button>
-      </div>
     </div>
     <div class="needs-grid" id="needs-grid">
       <div class="need-item"><strong>Голод</strong><output id="need-hunger-value">—</output><span class="need-track"><span class="need-fill" id="need-hunger"></span></span></div>
@@ -513,45 +539,61 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
       <span class="care-balance"><span id="modal-balance">20</span> ◈</span>
       <button type="button" class="care-close" id="care-close" aria-label="Закрыть">×</button>
     </div>
-    <p class="care-state" id="care-state">Состояние комнаты</p>
-    <h3 class="care-section-title">Задания дня <span id="quest-streak" style="float:right;color:#ffd27a;font-weight:600"></span></h3>
-    <div id="quest-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px"></div>
-    <h3 class="care-section-title">Заработать валюту</h3>
-    <div class="game-list">
-      <button type="button" class="game-card" id="game-reflex">
-        <strong>Neon Reflex</strong>
-        <small>реакция · 5 раундов · до 20 ◈</small>
-      </button>
-      <button type="button" class="game-card runner" id="game-runner">
-        <strong>Data Run</strong>
-        <small>раннер · 25 сек · до 30 ◈</small>
-      </button>
+    <div class="care-tabs" role="tablist" aria-label="Разделы комнаты">
+      <button type="button" class="care-tab on" role="tab" data-tab="care" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-bowl"/></svg>Уход<span class="tab-dot"></span></button>
+      <button type="button" class="care-tab" role="tab" data-tab="look" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-dress"/></svg>Образ<span class="tab-dot"></span></button>
+      <button type="button" class="care-tab" role="tab" data-tab="journal" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-scroll"/></svg>Дневник<span class="tab-dot"></span></button>
+      <button type="button" class="care-tab" role="tab" data-tab="more" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg>Ещё<span class="tab-dot"></span></button>
     </div>
-    <div class="game-area" id="game-area" hidden>
-      <div class="game-meta" id="game-meta"></div>
+    <div class="care-body">
+      <div class="care-pane" data-pane="care" role="tabpanel">
+        <p class="care-state" id="care-state">Состояние комнаты</p>
+        <h3 class="care-section-title">Задания дня <span class="sec-hint" id="quest-streak"></span></h3>
+        <div id="quest-list" style="display:flex;flex-direction:column;gap:5px"></div>
+        <h3 class="care-section-title mt">Заработать валюту</h3>
+        <div class="game-list">
+          <button type="button" class="game-card" id="game-reflex">
+            <strong>Neon Reflex</strong>
+            <small>реакция · 5 раундов · до 20 ◈</small>
+          </button>
+          <button type="button" class="game-card runner" id="game-runner">
+            <strong>Data Run</strong>
+            <small>раннер · 25 сек · до 30 ◈</small>
+          </button>
+        </div>
+        <div class="game-area" id="game-area" hidden>
+          <div class="game-meta" id="game-meta"></div>
+        </div>
+        <h3 class="care-section-title mt">Доставка в комнату</h3>
+        <div class="shop-grid" id="shop-grid"></div>
+      </div>
+      <div class="care-pane" data-pane="look" role="tabpanel" hidden>
+        <h3 class="care-section-title">Гардероб <span class="sec-hint" id="wardrobe-level"></span></h3>
+        <div class="wardrobe-grid" id="wardrobe-grid"></div>
+        <h3 class="care-section-title mt">Цвет образа</h3>
+        <div class="wd-tint-row" id="tint-outfit"></div>
+        <h3 class="care-section-title mt">Цвет волос</h3>
+        <div class="wd-tint-row" id="tint-hair"></div>
+      </div>
+      <div class="care-pane" data-pane="journal" role="tabpanel" hidden>
+        <h3 class="care-section-title">Дневник дня</h3>
+        <div class="journal-list" id="journal-list"></div>
+        <h3 class="care-section-title mt">Достижения</h3>
+        <div class="ach-list" id="ach-list"></div>
+      </div>
+      <div class="care-pane" data-pane="more" role="tabpanel" hidden>
+        <h3 class="care-section-title">Промокод</h3>
+        <div class="promo-row">
+          <input type="text" id="promo-input" placeholder="PXAX-XXXX" maxlength="16" autocomplete="off">
+          <button type="button" id="promo-btn">OK</button>
+        </div>
+        <h3 class="care-section-title mt">Напоминания</h3>
+        <div class="promo-row">
+          <button type="button" id="push-btn" style="flex:1;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px"><svg class="ic" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round" aria-hidden="true"><use href="#i-bell"/></svg> Напоминать раз в день в Telegram</button>
+        </div>
+        <p class="care-note">Голод, жажда и другие потребности меняются постепенно в течение реальных часов — у компании они копятся заметно медленнее, чем у человека. При усталости 70%+ компаньон спит 5–30 минут, и чат недоступен; в туалет она отлучается на 2–5 минут. Мини-игры доступны раз в 30 минут. Валюта, уровень, имя и гардероб сохраняются на этом устройстве и синхронизируются с облаком PXAX между устройствами.</p>
+      </div>
     </div>
-    <h3 class="care-section-title">Доставка в комнату</h3>
-    <div class="shop-grid" id="shop-grid"></div>
-    <h3 class="care-section-title">Гардероб <span id="wardrobe-level" style="float:right;color:#8c86a6;font-weight:600"></span></h3>
-    <div class="wardrobe-grid" id="wardrobe-grid"></div>
-    <h3 class="care-section-title">Цвет образа</h3>
-    <div class="wd-tint-row" id="tint-outfit"></div>
-    <h3 class="care-section-title">Цвет волос</h3>
-    <div class="wd-tint-row" id="tint-hair"></div>
-    <h3 class="care-section-title">Дневник дня</h3>
-    <div class="journal-list" id="journal-list"></div>
-    <h3 class="care-section-title">Достижения</h3>
-    <div class="ach-list" id="ach-list"></div>
-    <h3 class="care-section-title">Промокод</h3>
-    <div class="promo-row">
-      <input type="text" id="promo-input" placeholder="PXAX-XXXX" maxlength="16" autocomplete="off">
-      <button type="button" id="promo-btn">OK</button>
-    </div>
-    <h3 class="care-section-title">Напоминания</h3>
-    <div class="promo-row">
-      <button type="button" id="push-btn" style="flex:1;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px"><svg class="ic" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round" aria-hidden="true"><use href="#i-bell"/></svg> Напоминать раз в день в Telegram</button>
-    </div>
-    <p class="care-note">Голод, жажда и другие потребности меняются постепенно в течение реальных часов — у компании они копятся заметно медленнее, чем у человека. При усталости 70%+ компаньон спит 5–30 минут, и чат недоступен; в туалет она отлучается на 2–5 минут. Мини-игры доступны раз в 30 минут. Валюта, уровень, имя и гардероб сохраняются на этом устройстве и синхронизируются с облаком PXAX между устройствами.</p>
   </section>
 </div>
 <div id="toast"></div>
@@ -1912,6 +1954,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     renderMood();
     renderNow();
     refreshGamesUI();
+    if (!careModal.hidden) refreshCareTabs();
   }
 
   function renderJournal() {
@@ -2026,11 +2069,89 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     });
   }
 
-  function openCare() {
+  /* Вкладки экрана ухода: разделы не мешают друг другу, и не нужно скроллить
+     полсотни строк, чтобы дойти от заданий до промокода. */
+  var careTabs = Array.prototype.slice.call(document.querySelectorAll('.care-tab'));
+  var carePanes = Array.prototype.slice.call(document.querySelectorAll('.care-pane'));
+  var careActiveTab = 'care';
+  function showCareTab(name) {
+    if (!careTabs.length) return;
+    var found = carePanes.some(function (p) { return p.dataset.pane === name; });
+    if (!found) name = 'care';
+    careActiveTab = name;
+    careTabs.forEach(function (t) {
+      var on = t.dataset.tab === name;
+      t.classList.toggle('on', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    carePanes.forEach(function (p) { p.hidden = p.dataset.pane !== name; });
+    var body = document.querySelector('.care-body');
+    if (body) body.scrollTop = 0;
+    // уход со вкладки «Уход» останавливает мини-игру: её холст живёт в этой
+    // панели, и без остановки игровой цикл продолжал бы крутиться на скрытой
+    // панели, а результат прилетел бы в невидимый блок
+    if (name !== 'care' && activeGame) {
+      activeGame.stop();
+      activeGame = null;
+      gameArea.hidden = true;
+      gameArea.textContent = '';
+    }
+    if (name === 'journal') { renderJournal(); markJournalSeen(); setTabAlert('journal', false); }
+    if (name === 'look') { renderWardrobe(); try { storage.setItem(LOOK_SEEN_KEY, String(level())); } catch (e) {} setTabAlert('look', false); }
+    if (name === 'care') renderQuestsPanel();
+  }
+  /* Точка-индикатор на вкладке: подсказывает, где есть на что посмотреть.
+     Уход — когда пора кормить/поить/скоро перерыв; Образ — когда есть что купить
+     и хватает ◈; Дневник — когда со времени прошлого захода появились события. */
+  var JOURNAL_SEEN_KEY = 'pxax_ai_journal_seen_v1';
+  function journalSeenState() {
+    try {
+      var raw = JSON.parse(storage.getItem(JOURNAL_SEEN_KEY) || 'null');
+      // счётчик привязан к дню: иначе после полуночи вчерашние 8 событий
+      // глушили бы индикатор до девятого события нового дня
+      if (raw && raw.day === new Date().toDateString()) return Number(raw.count) || 0;
+    } catch (e) {}
+    return 0;
+  }
+  function journalUnseenCount() {
+    return Math.max(0, dayEvents.length - Math.min(journalSeenState(), dayEvents.length));
+  }
+  function markJournalSeen() {
+    try { storage.setItem(JOURNAL_SEEN_KEY, JSON.stringify({ day: new Date().toDateString(), count: dayEvents.length })); } catch (e) {}
+  }
+  function setTabAlert(name, on) {
+    var tab = careTabs.find(function (t) { return t.dataset.tab === name; });
+    if (tab) tab.classList.toggle('alert', !!on);
+  }
+  /* Индикатор «Образ» зажигается на новом уровне и гаснет, когда вкладку открыли.
+     Иначе он горел бы постоянно: ◈ обычно хватает хотя бы на что-то, и точка
+     превратилась бы в шум. */
+  var LOOK_SEEN_KEY = 'pxax_ai_look_seen_level_v1';
+  function lookTabHasNews() {
+    var seenLevel = Number(storage.getItem(LOOK_SEEN_KEY)) || 1;
+    if (level() <= seenLevel) return false;
+    return ['outfit', 'hair'].some(function (kind) {
+      return (WARDROBE_ITEMS[kind] || []).some(function (i) {
+        return !isOwned(kind, i.key) && level() >= i.level && needs.credits >= i.price;
+      });
+    });
+  }
+  function refreshCareTabs() {
+    setTabAlert('care', needs.hunger >= 70 || needs.thirst >= 70 || needs.toilet >= 80);
+    setTabAlert('look', careActiveTab !== 'look' && lookTabHasNews());
+    setTabAlert('journal', careActiveTab !== 'journal' && journalUnseenCount() > 0);
+  }
+  careTabs.forEach(function (t) {
+    t.addEventListener('click', function () { showCareTab(t.dataset.tab); haptic('select'); });
+  });
+
+  function openCare(tab) {
     renderNeeds();
     renderQuestsPanel();
     renderWardrobe();
     renderJournal();
+    refreshCareTabs();
+    showCareTab(tab || careActiveTab);
     careModal.hidden = false;
     if (window.pxaxQuests) {
       var qc = window.pxaxQuests.track(storage, 'care', 1);
@@ -2043,13 +2164,21 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     }
   }
   function closeCare() {
+    // закрытие окна с запущенной мини-игрой тоже останавливает её: иначе цикл
+    // продолжал бы рисовать в скрытый холст и жечь батарею
+    if (activeGame) {
+      activeGame.stop();
+      activeGame = null;
+      gameArea.hidden = true;
+      gameArea.textContent = '';
+    }
     careModal.hidden = true;
   }
-  $('care-open').addEventListener('click', openCare);
+  $('care-open').addEventListener('click', function () { openCare('care'); });
   document.addEventListener('click', function (e) {
     if (e.target && e.target.id === 'rename-btn') { e.stopPropagation(); promptRename(); }
   });
-  $('chat-care').addEventListener('click', openCare);
+  $('chat-care').addEventListener('click', function () { openCare('care'); });
   $('care-close').addEventListener('click', closeCare);
   careModal.addEventListener('click', function (event) {
     if (event.target === careModal) closeCare();
