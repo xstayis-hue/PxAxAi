@@ -95,6 +95,14 @@ body::before{
 .home-sub{display:block;font-size:9px;color:var(--mute);margin-top:1px;letter-spacing:1.4px;text-transform:uppercase}
 .home-badge-row{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .home-strip{display:flex;align-items:center;gap:6px;margin-top:8px;min-width:0}
+/* «что она делает сейчас»: строка пересказывает серверную жизнь (сон, работа,
+   отлучка, ожидание курьера) обычными словами — иначе её состояние видно только
+   в модалке ухода. */
+.home-now{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:10.5px;color:#a9a2c4;min-width:0}
+.home-now .hn-dot{width:5px;height:5px;border-radius:50%;background:var(--a);box-shadow:0 0 8px var(--a);flex:0 0 auto}
+.home-now.busy .hn-dot{background:#ffcd68;box-shadow:0 0 8px #ffcd68;animation:blink 1.4s ease-in-out infinite}
+.home-now.asleep .hn-dot{background:#6f8bff;box-shadow:0 0 8px #6f8bff}
+.home-now span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .home-status{
   display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--b);
   padding:4px 9px;border-radius:20px;border:1px solid rgba(92,225,230,.2);
@@ -378,6 +386,18 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
 .wd-item.on{border-color:rgba(92,225,230,.55);background:rgba(18,87,102,.25);box-shadow:0 0 12px rgba(92,225,230,.12)}
 .wd-item.on::after{content:'✓';margin-left:auto;color:var(--b);font-weight:700}
 .wd-item:disabled{opacity:.55;cursor:wait}
+.wd-item.locked{border-style:dashed;color:#8c86a6}
+.wd-item .wd-price{margin-left:auto;color:#ffdd96;font:650 10px system-ui,sans-serif;white-space:nowrap}
+.wd-item.locked .wd-price{color:#9a94b5}
+.wd-tint-row{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 4px}
+.wd-tint{width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.18);cursor:pointer;padding:0;position:relative}
+.wd-tint.on{border-color:#fff;box-shadow:0 0 10px rgba(255,255,255,.35)}
+.wd-tint.locked::after{content:'◈';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;text-shadow:0 1px 3px #000}
+.wd-tint:disabled{opacity:.5;cursor:default}
+.journal-list{display:grid;gap:5px}
+.j-row{display:flex;gap:8px;padding:7px 9px;border-radius:10px;background:rgba(8,10,20,.5);border:1px solid rgba(140,120,255,.14);font-size:10.5px;color:#b9b3cd;line-height:1.4}
+.j-row time{color:#6f6a88;white-space:nowrap;font-variant-numeric:tabular-nums}
+.j-row b{color:#ddd6f2;font-weight:600}
 .ach-list{display:grid;gap:6px}
 .ach-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid rgba(140,120,255,.16);border-radius:11px;background:rgba(8,10,20,.5);font-size:11px}
 .ach-row .ach-ico{font-size:15px;filter:grayscale(1) opacity(.55);display:inline-flex;width:17px;height:17px;align-items:center;justify-content:center}
@@ -430,6 +450,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         <span class="room-meta"><strong id="room-clock">--:--</strong><span>·</span><span id="room-state">Осматривает комнату</span></span>
         <span class="home-xp"><strong id="home-level">Ур. 1</strong><span>·</span><span id="home-mood">любопытная</span></span>
       </div>
+      <div class="home-now" id="home-now"><span class="hn-dot"></span><span id="home-now-text">подключаюсь…</span></div>
     </div>
     <div class="home-actions">
       <button type="button" class="btn-main" id="btn-chat">Начать диалог</button>
@@ -511,8 +532,14 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     </div>
     <h3 class="care-section-title">Доставка в комнату</h3>
     <div class="shop-grid" id="shop-grid"></div>
-    <h3 class="care-section-title">Гардероб</h3>
+    <h3 class="care-section-title">Гардероб <span id="wardrobe-level" style="float:right;color:#8c86a6;font-weight:600"></span></h3>
     <div class="wardrobe-grid" id="wardrobe-grid"></div>
+    <h3 class="care-section-title">Цвет образа</h3>
+    <div class="wd-tint-row" id="tint-outfit"></div>
+    <h3 class="care-section-title">Цвет волос</h3>
+    <div class="wd-tint-row" id="tint-hair"></div>
+    <h3 class="care-section-title">Дневник дня</h3>
+    <div class="journal-list" id="journal-list"></div>
     <h3 class="care-section-title">Достижения</h3>
     <div class="ach-list" id="ach-list"></div>
     <h3 class="care-section-title">Промокод</h3>
@@ -1028,6 +1055,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   var PROGRESS_KEY = 'pxax_ai_progress_v1';
   var WARDROBE_KEY = 'pxax_ai_wardrobe_v1';
   var GAMES_KEY = 'pxax_ai_games_v1';
+  var JOURNAL_KEY = 'pxax_ai_journal_v1';
   /* Микрофон и озвучка отключены целиком, пока приложение работает на чужом домене
      (xstayis-hue.github.io): браузер спрашивает разрешение на микрофон у ДОМЕНА, и в
      этом диалоге светится github-аккаунт. Микрофон и голос убраны из интерфейса и
@@ -1060,23 +1088,62 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     saveProgress();
   }
 
-  /* ---- события дня (кормят «сны» и дневной отчёт) ---- */
+  /* ---- события дня (кормят «сны», дневник и дневной отчёт) ----
+     Раньше это жило только в памяти вкладки и исчезало при перезагрузке —
+     теперь событие дня ещё и оседает в localStorage, чтобы «Дневник дня»
+     показывал, что было, даже если зайти вечером. */
   var dayEvents = [];
   var dayKey = '';
+  function loadJournal() {
+    try {
+      var raw = JSON.parse(storage.getItem(JOURNAL_KEY) || 'null');
+      if (raw && raw.day === new Date().toDateString() && Array.isArray(raw.events)) {
+        dayEvents = raw.events.slice(-40);
+      }
+    } catch (e) {}
+  }
+  function saveJournal() {
+    try {
+      storage.setItem(JOURNAL_KEY, JSON.stringify({ day: new Date().toDateString(), events: dayEvents.slice(-40) }));
+    } catch (e) {}
+  }
   function logDayEvent(type, text) {
     var today = new Date().toDateString();
     if (dayKey !== today) { dayKey = today; dayEvents = []; }
     dayEvents.push({ t: Date.now(), type: type, text: String(text || '').slice(0, 80) });
     if (dayEvents.length > 40) dayEvents.shift();
+    saveJournal();
   }
   function level() {
     return 1 + Math.floor(Math.pow(Math.max(0, progress.xp) / 100, 0.4));
+  }
+  /* Награда за новый уровень: ◈ + открывающиеся вещи. Уровень раньше ничего не
+     давал, кроме цифры в HUD, — теперь за него платят и он открывает косметику. */
+  function levelRewardCredits(l) {
+    return 10 + l * 5;
+  }
+  function claimLevelRewards() {
+    var l = level();
+    var claimed = Number(progress.counters.levelClaimed) || 1;
+    if (l <= claimed) return;
+    var gained = 0;
+    for (var i = claimed + 1; i <= l; i++) gained += levelRewardCredits(i);
+    progress.counters.levelClaimed = l;
+    needs.credits += gained;
+    saveProgress();
+    saveNeeds();
+    renderNeeds();
+    logDayEvent('level', 'Уровень ' + l + ' · +' + gained + ' ◈');
+    toast('Уровень ' + l + '! +' + gained + ' ◈ и новые вещи в гардеробе', 3600);
+    haptic('success');
+    renderWardrobe();
   }
   function addXp(n) {
     progress.xp = Math.max(0, progress.xp + (n | 0));
     saveProgress();
     renderXp();
     checkAchievements();
+    claimLevelRewards();
   }
   function renderXp() {
     var l = level();
@@ -1107,6 +1174,44 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     var el = $('home-mood');
     if (el) el.textContent = m.label;
     if (window.pxaxRoom3d && window.pxaxRoom3d.setMood) window.pxaxRoom3d.setMood(m.key);
+  }
+  /* «Что она делает прямо сейчас»: собираем из тех же данных, что знает сервер,
+     и пишем в шапку. Строка живая — раз в секунду её перерисовывает updateNeeds. */
+  // Mood-подписи из currentMood() — фразы для карточки («скучновато в комнате»),
+  // в строку состояния они не влезают грамматически, поэтому здесь короткие.
+  var NOW_MOOD = {
+    happy: 'в хорошем настроении', calm: 'спокойна', tired: 'устала',
+    hungry: 'проголодалась', lonely: 'скучает', busy: 'занята', sleep: 'спит'
+  };
+  function renderNow() {
+    var box = $('home-now');
+    var textEl = $('home-now-text');
+    if (!box || !textEl) return;
+    var now = Date.now();
+    var text;
+    var cls = '';
+    if (needs.sleepUntil > now) {
+      text = charName() + ' спит · проснётся через ' + clockText(needs.sleepUntil - now);
+      cls = 'asleep';
+    } else if (needs.toiletUntil > now) {
+      text = 'Отошла на пару минут · вернётся через ' + clockText(needs.toiletUntil - now);
+      cls = 'busy';
+    } else if (needs.pendingDelivery) {
+      text = 'Курьер у двери — идёт открывать';
+      cls = 'busy';
+    } else if (needs.delivery) {
+      text = 'Ждёт доставку · курьер через ' + clockText(needs.delivery.dueAt - now);
+      cls = 'busy';
+    } else {
+      var doing = room.status && room.status !== 'Осматривает комнату'
+        ? room.status
+        : null;
+      if (doing) { text = 'Сейчас: ' + doing.charAt(0).toLowerCase() + doing.slice(1); cls = 'busy'; }
+      else text = 'В комнате · ' + (NOW_MOOD[currentMood().key] || currentMood().label);
+    }
+    if (textEl.textContent !== text) textEl.textContent = text;
+    box.classList.toggle('busy', cls === 'busy');
+    box.classList.toggle('asleep', cls === 'asleep');
   }
   var ACHIEVEMENTS = [
     { id: 'first-msg', ico: 'i-msg', title: 'Первый диалог', desc: 'отправь первое сообщение', reward: 20, test: function () { return (progress.counters.messages || 0) >= 1; } },
@@ -1278,32 +1383,46 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   });
   if (predCache) setTimeout(pushMonitorSlides, 0);
 
-  /* ---- Гардероб: набор зависит от выбранного компаньона (pxax_ai_wardrobe_v1) ---- */
+  /* ---- Гардероб: набор зависит от выбранного компаньона (pxax_ai_wardrobe_v1) ----
+     Вещи стоят ◈ и открываются по уровню: раньше косметика была бесплатной и
+     менялась мгновенно, поэтому копить кристаллы было незачем. Первый образ и
+     первая причёска остаются бесплатными — это база, которую видит новый игрок. */
   var WARDROBE_SETS = {
     f: {
       outfit: [
-        { key: 'peasant', ico: 'i-dress', name: 'Нео-крестьянка' },
-        { key: 'ranger', ico: 'i-belt', name: 'Кибер-рейнджер' }
+        { key: 'peasant', ico: 'i-dress', name: 'Нео-крестьянка', price: 0, level: 1 },
+        { key: 'ranger', ico: 'i-belt', name: 'Кибер-рейнджер', price: 140, level: 2 }
       ],
       hair: [
-        { key: 'long', ico: 'i-shirthair', name: 'Длинные волосы' },
-        { key: 'buns', ico: 'i-face', name: 'Узелки' },
-        { key: 'parted', ico: 'i-scissors', name: 'Простой пробор' },
-        { key: 'buzz', ico: 'i-scissors', name: 'Коротко' }
+        { key: 'long', ico: 'i-shirthair', name: 'Длинные волосы', price: 0, level: 1 },
+        { key: 'buns', ico: 'i-face', name: 'Узелки', price: 45, level: 1 },
+        { key: 'parted', ico: 'i-scissors', name: 'Простой пробор', price: 70, level: 2 },
+        { key: 'buzz', ico: 'i-scissors', name: 'Коротко', price: 100, level: 3 }
       ]
     },
     m: {
       outfit: [
-        { key: 'peasant', ico: 'i-tshirt', name: 'Нео-крестьянин' },
-        { key: 'ranger', ico: 'i-belt', name: 'Кибер-рейнджер' }
+        { key: 'peasant', ico: 'i-tshirt', name: 'Нео-крестьянин', price: 0, level: 1 },
+        { key: 'ranger', ico: 'i-belt', name: 'Кибер-рейнджер', price: 140, level: 2 }
       ],
       hair: [
-        { key: 'buzz', ico: 'i-scissors', name: 'Короткая стрижка' },
-        { key: 'long', ico: 'i-shirthair', name: 'Длинные волосы' },
-        { key: 'beard', ico: 'i-face', name: 'С бородой' }
+        { key: 'buzz', ico: 'i-scissors', name: 'Короткая стрижка', price: 0, level: 1 },
+        { key: 'long', ico: 'i-shirthair', name: 'Длинные волосы', price: 45, level: 1 },
+        { key: 'beard', ico: 'i-face', name: 'С бородой', price: 90, level: 3 }
       ]
     }
   };
+  /* Палитра перекраски: цвет — бесконечный и мгновенный сток для ◈, он не требует
+     новых 3D-моделей (те дороги и быстро кончаются). Первый цвет бесплатный. */
+  var TINT_PALETTE = [
+    { key: 'default', name: 'Свой', outfit: '#b09aff', hair: '#7852bf', price: 0, level: 1 },
+    { key: 'cyan', name: 'Циан', outfit: '#5ce1e6', hair: '#3fb6c8', price: 25, level: 1 },
+    { key: 'rose', name: 'Роза', outfit: '#ff8fb0', hair: '#d95f8a', price: 25, level: 1 },
+    { key: 'gold', name: 'Золото', outfit: '#ffd27a', hair: '#d9a441', price: 35, level: 2 },
+    { key: 'mint', name: 'Мята', outfit: '#7bf0b2', hair: '#4fc78c', price: 35, level: 2 },
+    { key: 'void', name: 'Ночь', outfit: '#5b4a8c', hair: '#3a2f5e', price: 50, level: 3 }
+  ];
+  var TINT_PRICE_FALLBACK = 25;
   function companionGender() {
     try {
       var id = storage.getItem('pxax_companion_v1');
@@ -1311,19 +1430,134 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     } catch (e) { return 'f'; }
   }
   var WARDROBE_ITEMS = WARDROBE_SETS[companionGender()];
-  var wardrobeState = { outfit: WARDROBE_ITEMS.outfit[0].key, hair: WARDROBE_ITEMS.hair[0].key };
+  var wardrobeState = {
+    outfit: WARDROBE_ITEMS.outfit[0].key,
+    hair: WARDROBE_ITEMS.hair[0].key,
+    tints: { outfit: null, hair: null },
+    owned: { outfit: [], hair: [] }
+  };
+  try {
+    var storedWardrobeState = JSON.parse(storage.getItem(WARDROBE_KEY) || 'null');
+    if (storedWardrobeState && typeof storedWardrobeState === 'object') {
+      if (WARDROBE_ITEMS.outfit.some(function (i) { return i.key === storedWardrobeState.outfit; })) wardrobeState.outfit = storedWardrobeState.outfit;
+      if (WARDROBE_ITEMS.hair.some(function (i) { return i.key === storedWardrobeState.hair; })) wardrobeState.hair = storedWardrobeState.hair;
+      if (storedWardrobeState.tints && typeof storedWardrobeState.tints === 'object') {
+        ['outfit', 'hair'].forEach(function (k) {
+          wardrobeState.tints[k] = tintDef(k, storedWardrobeState.tints[k]) ? storedWardrobeState.tints[k] : null;
+        });
+      }
+      if (storedWardrobeState.owned && typeof storedWardrobeState.owned === 'object') {
+        ['outfit', 'hair'].forEach(function (k) {
+          if (Array.isArray(storedWardrobeState.owned[k])) {
+            wardrobeState.owned[k] = storedWardrobeState.owned[k].filter(function (key) {
+              return (WARDROBE_ITEMS[k] || []).some(function (i) { return i.key === key; });
+            }).slice(0, 40);
+          }
+        });
+        if (Array.isArray(storedWardrobeState.owned.tint)) {
+          wardrobeState.owned.tint = storedWardrobeState.owned.tint.filter(function (key) { return !!tintDef('outfit', key); }).slice(0, 40);
+        }
+      }
+    }
+  } catch (e) {}
+  function isOwned(kind, key) {
+    var list = wardrobeState.owned[kind] || [];
+    var def = kind === 'tint'
+      ? (tintDef('outfit', key) ? { price: tintDef('outfit', key).price } : null)
+      : (WARDROBE_ITEMS[kind] || []).find(function (i) { return i.key === key; });
+    // бесплатные вещи считаются своими всегда: их нельзя «отобрать» ни сменой
+    // суммы на счету, ни старым сейвом из облака
+    return list.indexOf(key) !== -1 || !!(def && !def.price);
+  }
+  function own(kind, key) {
+    if (!wardrobeState.owned[kind]) wardrobeState.owned[kind] = [];
+    if (wardrobeState.owned[kind].indexOf(key) === -1) wardrobeState.owned[kind].push(key);
+  }
+  function normalizeWardrobe() {
+    ['outfit', 'hair'].forEach(function (kind) {
+      var items = WARDROBE_ITEMS[kind] || [];
+      if (items.every(function (i) { return i.key !== wardrobeState[kind]; })) {
+        wardrobeState[kind] = items[0] && items[0].key;
+      }
+      items.forEach(function (i) { if (!i.price && i.key === wardrobeState[kind]) own(kind, i.key); });
+    });
+    if (!Number.isFinite(Number(progress.counters.levelClaimed))) progress.counters.levelClaimed = 1;
+  }
   function saveWardrobe() {
-    try { storage.setItem(WARDROBE_KEY, JSON.stringify(wardrobeState)); } catch (e) {}
+    try {
+      storage.setItem(WARDROBE_KEY, JSON.stringify(wardrobeState));
+      if (typeof cloudPush === 'function') cloudPush();
+    } catch (e) {}
+  }
+  function tintDef(kind, key) {
+    return TINT_PALETTE.find(function (t) { return t.key === key; }) || null;
+  }
+  function applyTint(kind) {
+    var def = tintDef(kind, wardrobeState.tints[kind]);
+    if (!def) return;
+    if (window.pxaxRoom3d && window.pxaxRoom3d.setWardrobeTint) {
+      window.pxaxRoom3d.setWardrobeTint(kind, def[kind]);
+    }
+  }
+  function renderTints() {
+    ['outfit', 'hair'].forEach(function (kind) {
+      var row = $('tint-' + kind);
+      if (!row) return;
+      row.innerHTML = '';
+      TINT_PALETTE.forEach(function (t) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'wd-tint';
+        btn.style.background = t[kind];
+        btn.title = t.name + (t.price ? ' · ' + t.price + ' ◈' : ' · бесплатно');
+        var active = (wardrobeState.tints[kind] || 'default') === t.key;
+        var ownedTint = !t.price || isOwned('tint', t.key);
+        if (active) btn.classList.add('on');
+        if (!ownedTint && !active) {
+          if (level() >= t.level) btn.classList.add('locked');
+          else { btn.disabled = true; btn.classList.add('locked'); }
+        }
+        btn.addEventListener('click', function () { chooseTint(kind, t); });
+        row.appendChild(btn);
+      });
+    });
+  }
+  function chooseTint(kind, tint) {
+    if ((wardrobeState.tints[kind] || 'default') === tint.key) return;
+    var levelOk = level() >= tint.level;
+    if (!levelOk) { toast('Откроется на ' + tint.level + ' уровне'); return; }
+    if (!isOwned('tint', tint.key)) {
+      var price = tint.price || TINT_PRICE_FALLBACK;
+      if (needs.credits < price) { toast('Нужно ' + price + ' ◈ — не хватает ' + (price - Math.floor(needs.credits))); return; }
+      needs.credits -= price;
+      own('tint', tint.key);
+      saveNeeds();
+      toast('Цвет «' + tint.name + '» куплен за ' + price + ' ◈');
+    }
+    wardrobeState.tints[kind] = tint.key;
+    saveWardrobe();
+    applyTint(kind);
+    counter('wardrobe');
+    addXp(3);
+    renderTints();
+    renderWardrobe();
+    renderNeeds();
+    haptic('success');
   }
   function renderWardrobe() {
     var grid = $('wardrobe-grid');
+    var levelEl = $('wardrobe-level');
+    if (levelEl) levelEl.textContent = 'уровень ' + level();
     if (!grid) return;
     grid.innerHTML = '';
     ['outfit', 'hair'].forEach(function (kind) {
       WARDROBE_ITEMS[kind].forEach(function (item) {
+        var worn = wardrobeState[kind] === item.key;
+        var owned = isOwned(kind, item.key);
+        var levelOk = level() >= item.level;
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'wd-item' + (wardrobeState[kind] === item.key ? ' on' : '');
+        btn.className = 'wd-item' + (worn ? ' on' : '') + ((!owned || !levelOk) ? ' locked' : '');
         var ico = document.createElement('span');
         ico.className = 'wd-emoji';
         ico.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#' + item.ico + '"/></svg>';
@@ -1331,13 +1565,42 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         label.textContent = item.name;
         btn.appendChild(ico);
         btn.appendChild(label);
+        if (!levelOk) {
+          var lock = document.createElement('span');
+          lock.className = 'wd-price';
+          lock.textContent = 'уровень ' + item.level;
+          btn.appendChild(lock);
+        } else if (!owned) {
+          var priceEl = document.createElement('span');
+          priceEl.className = 'wd-price';
+          priceEl.textContent = item.price + ' ◈';
+          btn.appendChild(priceEl);
+        }
         btn.addEventListener('click', function () { chooseWardrobeItem(kind, item, btn); });
         grid.appendChild(btn);
       });
     });
+    renderTints();
   }
   function chooseWardrobeItem(kind, item, btn) {
     if (wardrobeState[kind] === item.key) return;
+    if (level() < item.level) { toast('Откроется на ' + item.level + ' уровне'); return; }
+    if (!isOwned(kind, item.key)) {
+      if (needs.credits < item.price) {
+        toast('Нужно ' + item.price + ' ◈ — не хватает ' + (item.price - Math.floor(needs.credits)));
+        return;
+      }
+      if (!window.pxaxRoom3d || !window.pxaxRoom3d.setWardrobe) { toast('3D-комната ещё загружается…'); return; }
+      needs.credits -= item.price;
+      own(kind, item.key);
+      // сохраняем покупку сразу: если 3D-часть не загрузится, вещь всё равно
+      // останется купленной — списывать ◈ и не отдать товар нельзя
+      saveWardrobe();
+      saveNeeds();
+      renderNeeds();
+      toast('Куплено: ' + item.name + ' за ' + item.price + ' ◈');
+      logDayEvent('shop', item.name + ' · −' + item.price + ' ◈');
+    }
     if (!window.pxaxRoom3d || !window.pxaxRoom3d.setWardrobe) { toast('3D-комната ещё загружается…'); return; }
     btn.disabled = true;
     var ok = window.pxaxRoom3d.setWardrobe(kind, item.key);
@@ -1347,9 +1610,11 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         if (!applied) { toast('Не удалось загрузить 3D-часть'); return; }
         wardrobeState[kind] = item.key;
         saveWardrobe();
+        applyTint(kind);
         counter('wardrobe');
         addXp(5);
         renderWardrobe();
+        renderNeeds();
         haptic('success');
         toast(kind === 'outfit' ? 'Образ обновлён' : 'Причёска обновлена');
       }, function () {
@@ -1390,7 +1655,12 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         sleepUntil: needs.sleepUntil,
         toiletUntil: needs.toiletUntil
       },
-      wardrobe: { outfit: wardrobeState.outfit, hair: wardrobeState.hair },
+      wardrobe: {
+        outfit: wardrobeState.outfit,
+        hair: wardrobeState.hair,
+        tints: wardrobeState.tints,
+        owned: wardrobeState.owned
+      },
       counters: progress.counters
     };
   }
@@ -1471,6 +1741,25 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         wardrobeState.hair = wh;
         changed = true;
       }
+      // купленное нельзя терять между устройствами: свои вещи объединяем, а не перезаписываем
+      if (remote.wardrobe.owned && typeof remote.wardrobe.owned === 'object') {
+        ['outfit', 'hair', 'tint'].forEach(function (k) {
+          var list = remote.wardrobe.owned[k];
+          if (!Array.isArray(list)) return;
+          list.slice(0, 40).forEach(function (key) {
+            if (k === 'tint' ? tintDef('outfit', key) : (WARDROBE_ITEMS[k] || []).some(function (i) { return i.key === key; })) {
+              if (!Array.isArray(wardrobeState.owned[k])) wardrobeState.owned[k] = [];
+              if (wardrobeState.owned[k].indexOf(key) === -1) { wardrobeState.owned[k].push(key); changed = true; }
+            }
+          });
+        });
+      }
+      if (remote.wardrobe.tints && typeof remote.wardrobe.tints === 'object') {
+        ['outfit', 'hair'].forEach(function (k) {
+          var key = remote.wardrobe.tints[k];
+          if (tintDef(k, key) && key !== wardrobeState.tints[k]) { wardrobeState.tints[k] = key; changed = true; }
+        });
+      }
     }
     if (changed) {
       saveProgress();
@@ -1480,6 +1769,8 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
       renderWardrobe();
       renderAch();
       renderXp();
+      applyTint('outfit');
+      applyTint('hair');
       applyName();
     }
   }
@@ -1619,7 +1910,36 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     renderFoodShop();
     renderXp();
     renderMood();
+    renderNow();
     refreshGamesUI();
+  }
+
+  function renderJournal() {
+    var list = $('journal-list');
+    if (!list) return;
+    list.innerHTML = '';
+    var events = dayEvents.slice(-14).reverse();
+    if (!events.length) {
+      var empty = document.createElement('div');
+      empty.className = 'j-row';
+      empty.textContent = 'Пока пусто. Поговори, покорми или сыграй — день начнёт заполняться.';
+      list.appendChild(empty);
+      return;
+    }
+    var labels = { chat: 'разговор', food: 'доставка', game: 'мини-игра', ach: 'достижение', rare: 'редкое событие', level: 'уровень', shop: 'покупка', promo: 'промокод', return: 'возвращение', photo: 'фото' };
+    events.forEach(function (e) {
+      var row = document.createElement('div');
+      row.className = 'j-row';
+      var time = document.createElement('time');
+      var d = new Date(e.t);
+      time.textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      var body = document.createElement('span');
+      var tag = labels[e.type] || e.type;
+      body.innerHTML = '<b>' + escapeHtml(tag) + '</b> · ' + escapeHtml(e.text);
+      row.appendChild(time);
+      row.appendChild(body);
+      list.appendChild(row);
+    });
   }
 
   function renderQuestsPanel() {
@@ -1709,6 +2029,8 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   function openCare() {
     renderNeeds();
     renderQuestsPanel();
+    renderWardrobe();
+    renderJournal();
     careModal.hidden = false;
     if (window.pxaxQuests) {
       var qc = window.pxaxQuests.track(storage, 'care', 1);
@@ -2422,13 +2744,20 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
   };
 
   /* --- голос, настройки, запуск систем (микрофон и озвучка отключены) --- */
+  loadJournal();
+  normalizeWardrobe();
   renderWardrobe();
   renderAch();
   renderXp();
   renderMood();
+  renderNow();
+  renderJournal();
   loadPredictions();
   setInterval(loadPredictions, 10 * 60 * 1000);
   setTimeout(function () { checkAchievements(); }, 1500);
+  // награда за уровни, набранные до этого обновления, и цвет из сейва — после того,
+  // как комната подгрузится: до этого setWardrobeTint не к чему применять
+  setTimeout(function () { claimLevelRewards(); applyTint('outfit'); applyTint('hair'); }, 4200);
 
   /* --- живой компаньон: онбординг, ритуал возвращения, инициатива, голос --- */
   if (window.pxaxLife) {

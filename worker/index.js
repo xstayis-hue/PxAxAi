@@ -1,7 +1,8 @@
 /* =========================================================
    PXAX · Nova — Cloudflare Worker
    v0.6 «слышит, видит, помнит»
-   - ГОЛОС: распознавание речи через Workers AI (Whisper) — можно говорить, а не печатать
+   - ГОЛОС: распознавание речи через Workers AI (Whisper) — эндпоинт жив, но клиент
+     его больше не вызывает: голос и микрофон отключены из-за домена github.io
    - ЗРЕНИЕ: фото от пользователя уходит в мультимодальную модель
    - ПАМЯТЬ: эпизоды ищутся по смыслу (эмбеддинги bge-m3), а не по совпадению слов;
      при недоступности эмбеддингов — прежний поиск по словам
@@ -545,6 +546,21 @@ function clampState(incoming, previous) {
 
   if (incoming.wardrobe && typeof incoming.wardrobe === 'object') {
     out.wardrobe = { outfit: String(incoming.wardrobe.outfit || '').slice(0, 40), hair: String(incoming.wardrobe.hair || '').slice(0, 40) };
+    // Купленное и цвет — часть прогресса: без них после кросс-девайс pull гардероб
+    // откатывался бы к базовому образу, хотя за вещи уже заплачено ◈.
+    if (incoming.wardrobe.tints && typeof incoming.wardrobe.tints === 'object') {
+      out.wardrobe.tints = {
+        outfit: String(incoming.wardrobe.tints.outfit || '').slice(0, 9),
+        hair: String(incoming.wardrobe.tints.hair || '').slice(0, 9)
+      };
+    }
+    if (incoming.wardrobe.owned && typeof incoming.wardrobe.owned === 'object') {
+      out.wardrobe.owned = {};
+      for (const kind of ['outfit', 'hair', 'tint']) {
+        const list = incoming.wardrobe.owned[kind];
+        if (Array.isArray(list)) out.wardrobe.owned[kind] = list.slice(0, 40).map((v) => String(v).slice(0, 40));
+      }
+    }
   }
   if (incoming.counters && typeof incoming.counters === 'object') {
     out.counters = {};

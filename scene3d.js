@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const host = document.getElementById('room3d');
 const loadingLabel = document.getElementById('scene-loading');
@@ -7,6 +8,9 @@ const errorLabel = document.getElementById('scene-error');
 const assetRoot = new URL('./assets/scene3d/', import.meta.url);
 const assetUrl = (name) => new URL(name, assetRoot).href;
 const loader = new GLTFLoader();
+// Модели лежат сжатыми (EXT_meshopt_compression): 5.7 МБ glb для мобильного
+// первого входа — это заметная пауза, после сжатия остаётся ~0.75 МБ.
+loader.setMeshoptDecoder(MeshoptDecoder);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#090916');
 scene.fog = new THREE.Fog('#090916', 10, 22);
@@ -769,6 +773,10 @@ const WARD = {
   }
 };
 const wornParts = { outfit: [], hair: [] };
+// Перекраска — отдельная косметика (дешевле и бесконечнее новых моделей): цвет
+// образа и волос хранится отдельно от того, какая это модель, и накладывается
+// при загрузке и при смене прямо на надетые меши, без повторной загрузки glb.
+const wardrobeTint = { outfit: null, hair: null };
 let wardrobeKeys = { outfit: 'peasant', hair: 'long' };
 try {
   const storedWardrobe = JSON.parse(window.localStorage.getItem('pxax_ai_wardrobe_v1') || 'null');
@@ -777,6 +785,12 @@ try {
       outfit: storedWardrobe.outfit === 'ranger' ? 'ranger' : 'peasant',
       hair: WARD.hair[storedWardrobe.hair] ? storedWardrobe.hair : 'long'
     };
+    // цвет надетой вещи тоже приходит из сейва: без него после перезагрузки
+    // купленный цвет «слетал» бы обратно на стандартный.
+    if (storedWardrobe.tints && typeof storedWardrobe.tints === 'object') {
+      if (/^#[0-9a-f]{6}$/i.test(String(storedWardrobe.tints.outfit || ''))) wardrobeTint.outfit = storedWardrobe.tints.outfit;
+      if (/^#[0-9a-f]{6}$/i.test(String(storedWardrobe.tints.hair || ''))) wardrobeTint.hair = storedWardrobe.tints.hair;
+    }
   }
 } catch (e) {
   wardrobeKeys = { outfit: 'peasant', hair: 'long' };
@@ -798,8 +812,22 @@ function loadWardPart(partKey, key) {
     loader.load(def.src(), resolve, undefined, reject);
   }).then((gltf) => {
     removeWornPart(partKey);
-    addRiggedPart(characterRoot, characterBones, gltf, def.tint, def.glow, partKey);
+    addRiggedPart(characterRoot, characterBones, gltf, wardrobeTint[partKey] || def.tint, def.glow, partKey);
   });
+}
+
+/* Перекраска надетой вещи: новые модели стоят дорого и заканчиваются, а цвет —
+   бесконечный и мгновенный сток для валюты, без повторной загрузки glb. */
+function setWardrobeTint(partKey, hex) {
+  if (!wornParts[partKey] || !wornParts[partKey].length) return false;
+  const color = String(hex || '').trim();
+  if (!/^#[0-9a-f]{6}$/i.test(color)) return false;
+  wardrobeTint[partKey] = color;
+  for (const mesh of wornParts[partKey]) {
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const item of materials) if (item && item.color) item.color.set(color);
+  }
+  return true;
 }
 
 function setWardrobe(partKey, key) {
@@ -1180,8 +1208,8 @@ async function initialize() {
   if (!skinnedMeshes.length) throw new Error('Female character model has no skin rig');
   const baseBones = new Map(skinnedMeshes[0].skeleton.bones.map((bone) => [bone.name, bone]));
   characterParts = skinnedMeshes;
-  addRiggedPart(characterRoot, baseBones, outfit, '#b09aff', '#301256', 'outfit');
-  addRiggedPart(characterRoot, baseBones, hair, '#7852bf', '#34135b', 'hair');
+  addRiggedPart(characterRoot, baseBones, outfit, wardrobeTint.outfit || '#b09aff', '#301256', 'outfit');
+  addRiggedPart(characterRoot, baseBones, hair, wardrobeTint.hair || '#7852bf', '#34135b', 'hair');
   if (wardrobeKeys.outfit !== 'peasant') {
     loadWardPart('outfit', wardrobeKeys.outfit).catch((error) => console.warn('Wardrobe outfit failed:', error));
   }
@@ -1262,6 +1290,7 @@ window.pxaxRoom3d = {
   setHour,
   setMood,
   setWardrobe,
+  setWardrobeTint,
   setMonitorSlides,
   emote,
   speak,

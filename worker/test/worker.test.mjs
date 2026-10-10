@@ -183,6 +183,37 @@ check('F2: анонимный sync → свой (пустой) ip-бакет, н
 const anonLife = await call({ action: 'life' }, null);
 check('F3: life без initData работает в ip-бакете', anonLife.json.ok === true && anonLife.json.state === null, JSON.stringify(anonLife.json).slice(0, 120));
 
+/* ---------- G. Гардероб: купленное и цвет переживают синхронизацию ----------
+   За вещи и цвета платят ◈, поэтому сервер обязан их сохранять: иначе после
+   кросс-девайс pull гардероб откатывался бы к базовому образу. */
+clearRate();
+const wardrobePush = await call({ action: 'sync', op: 'push', ts: Date.now(), state: {
+  credits: 200, xp: 60, updatedAt: Date.now(),
+  needs: { hunger: 5, thirst: 5, fatigue: 5, toilet: 5, updatedAt: Date.now() },
+  wardrobe: { outfit: 'ranger', hair: 'buns', tints: { outfit: '#5ce1e6', hair: '' }, owned: { outfit: ['ranger'], hair: ['buns'], tint: ['cyan'] } }
+} }, good);
+check('G1: купленный образ и цвет сохранены на сервере',
+  wardrobePush.json.saved.wardrobe.outfit === 'ranger' &&
+  wardrobePush.json.saved.wardrobe.tints.outfit === '#5ce1e6' &&
+  Array.isArray(wardrobePush.json.saved.wardrobe.owned.tint) &&
+  wardrobePush.json.saved.wardrobe.owned.tint[0] === 'cyan',
+  JSON.stringify(wardrobePush.json.saved.wardrobe));
+const wardrobePull = await call({ action: 'sync', op: 'pull' }, good);
+check('G2: pull отдаёт их обратно',
+  wardrobePull.json.state.wardrobe.outfit === 'ranger' &&
+  wardrobePull.json.state.wardrobe.owned.outfit.indexOf('ranger') !== -1,
+  JSON.stringify(wardrobePull.json.state.wardrobe));
+// произвольный текст в поле цвета не должен доезжать целиком
+clearRate();
+const tintClamp = await call({ action: 'sync', op: 'push', ts: Date.now(), state: {
+  credits: 0, xp: 0, updatedAt: Date.now(),
+  needs: { hunger: 0, thirst: 0, fatigue: 0, toilet: 0, updatedAt: Date.now() },
+  wardrobe: { outfit: 'peasant', hair: 'long', tints: { outfit: '<script>alert(1)</script>', hair: 'javascript:alert(1)' } }
+} }, good);
+check('G3: цвет обрезается по длине (9 символов), произвольный текст не проходит целиком',
+  tintClamp.json.saved.wardrobe.tints.outfit.length <= 9 && tintClamp.json.saved.wardrobe.tints.hair.length <= 9,
+  JSON.stringify(tintClamp.json.saved.wardrobe.tints));
+
 console.log(results.join('\n'));
 const failed = results.filter((r) => r.startsWith('FAIL'));
 console.log(`\n${results.length - failed.length}/${results.length} passed`);
