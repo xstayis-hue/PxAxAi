@@ -133,13 +133,15 @@ function drawMonitorSlide() {
       ctx.fillStyle = "rgba(139,163,199,.25)";
       roundRect(ctx, 22, 214, 340, 15, 8);
       ctx.fill();
-      ctx.fillStyle = slide.value ? "#ffc93c" : "#5ce1f1";
+      ctx.fillStyle = "#5ce1f1";
       roundRect(ctx, 22, 214, Math.max(16, 340 * Math.min(1, slide.confidence / 100)), 15, 8);
       ctx.fill();
     }
-    ctx.fillStyle = slide.value ? "#ffc93c" : "#6a8a9c";
+    // Подпись VALUE убрана вместе с чтением p.value: перевес модели — оплачиваемый
+    // сигнал PRO, а на мониторе в комнате идут бесплатные строки.
+    ctx.fillStyle = "#6a8a9c";
     ctx.font = "700 21px system-ui, sans-serif";
-    ctx.fillText(slide.value ? "VALUE · кэф " + (slide.odds || "") : (slide.odds ? "кэф " + slide.odds : ""), 22, 262);
+    ctx.fillText(slide.odds ? "кэф " + slide.odds : "", 22, 262);
   }
   monitorTexture.needsUpdate = true;
 }

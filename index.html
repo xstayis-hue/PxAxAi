@@ -399,7 +399,6 @@ body.reduced-motion .home-now .hn-dot{animation:none}
 .lw-rows::-webkit-scrollbar{display:none}
 .lw-row{padding:5px 6px;border-radius:8px;background:rgba(255,255,255,.045);margin-bottom:5px}
 .lw-row:last-child{margin-bottom:0}
-.lw-row.value small{color:#ffd27a}
 .lw-row strong{display:block;font-size:10px;color:#ece7fa;letter-spacing:.2px}
 .lw-row small{display:block;margin-top:2px;font-size:9px;color:#9a94b5}
 .lw-pct{color:var(--b);font-weight:700}
@@ -1351,7 +1350,8 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
               market: p.market || '',
               confidence: p.confidence || 0,
               odds: p.odds || 0,
-              value: !!p.value,
+              // value — оплачиваемый сигнал PRO: генератор его из публичного файла
+              // больше не отдаёт, и подсвечивать бесплатные строки золотым незачем
               sub: [p.lgName, p.market, (p.confidence ? p.confidence + '%' : '')].filter(Boolean).join(' · '),
               time: p.time || ''
             };
@@ -1370,7 +1370,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
     wrap.innerHTML = '';
     predCache.top.forEach(function (p) {
       var row = document.createElement('div');
-      row.className = 'lw-row' + (p.value ? ' value' : '');
+      row.className = 'lw-row';
       var strong = document.createElement('strong');
       strong.textContent = p.title;
       var small = document.createElement('small');
@@ -1396,7 +1396,7 @@ body.chat-open #laptop-widget{transform:translateX(-104%);opacity:0;pointer-even
         slides.push({
           kind: 'pick', league: preds[i].league, title: preds[i].title,
           market: preds[i].market, confidence: preds[i].confidence,
-          odds: preds[i].odds, value: preds[i].value
+          odds: preds[i].odds
         });
       }
       if (promo[i]) slides.push(promo[i]);
